@@ -1,0 +1,4933 @@
+---
+swagger: "2.0"
+info:
+  description: |
+    API dla projektu DMS
+  version: 2.0.0
+  title: DMS
+host: virtserver.swaggerhub.com
+basePath: /gwizdek/dms/1.7.1
+tags:
+- name: tickets
+  description: Funkcjonalności związane z obsługą zgłoszeń
+- name: tasks
+  description: Funkcjonalności związane z obsługą zadań
+- name: security
+  description: Funkcjonalności związane z użytkownikami, rolamii uprawnieniami
+- name: personalDatasets
+  description: Funkcjonalności związane z obsługą rejestru zbiorów danych osobowych
+- name: registries
+  description: Funkcjonalności związane z obsługą rejestrów
+- name: processingActivities
+  description: Funkcjonalności związane z obsługą czynności przetwarzania danych
+- name: registryAdmins
+  description: Funkcjonalności związane z obsługą administratorów rejestrów
+schemes:
+- https
+- http
+paths:
+  /tickets:
+    get:
+      tags:
+      - tickets
+      summary: Pobiera listę wniosków o podanym statusie w wersji skróconej. Wersja z paginacją
+      description: |
+        Na podstawie parametrów wejściowych wyszukuje i pobiera listę wniosków. Parametry są łączone iloczynem logicznym.
+        Liczba pobranych rekordów ma być domyślnie max 100, ale jeśli podano parametr count, to tyle ile w nim wskazano.
+        Wyszukiwanie stringów ma być case insensitive a stringi mają być trimowane.
+        Authorities [AUTH_WS_TICKETS_VIEW]
+      operationId: getTicketsShortPageable
+      produces:
+      - application/json
+      parameters:
+      - name: page
+        in: query
+        description: Numer strony
+        required: false
+        type: number
+      - name: size
+        in: query
+        description: Rozmiar strony
+        required: false
+        type: number
+      - name: sort
+        in: query
+        description: Sortowanie
+        required: false
+        type: array
+        items:
+          type: string
+        collectionFormat: multi
+      - name: finished
+        in: query
+        description: |
+          Określa czy chodzi o procesowane, czy zakończone wnioski. Jeśli brak parametru, to wszystkie wnioski:
+           * N - Procesowane
+           * Y - Zakończone
+        required: false
+        type: string
+        enum:
+        - Y
+        - N
+      - name: name
+        in: query
+        description: Imię klienta
+        required: false
+        type: string
+      - name: surname
+        in: query
+        description: Nazwisko klienta
+        required: false
+        type: string
+      - name: pesel
+        in: query
+        description: PESEL klienta
+        required: false
+        type: string
+      - name: phone
+        in: query
+        description: Telefon klienta. Podczas wyszukiwania usunąć spacje z parametru i w DB
+        required: false
+        type: string
+      - name: action
+        in: query
+        description: ID typu wniosku
+        required: false
+        type: integer
+      - name: status
+        in: query
+        description: ID statusu wniosku
+        required: false
+        type: integer
+      - name: from
+        in: query
+        description: Data OD - dla daty utworzenia wniosku. Format YYYY-MM-DD
+        required: false
+        type: string
+      - name: to
+        in: query
+        description: Data DO - dla daty utworzenia wniosku. Format YYYY-MM-DD
+        required: false
+        type: string
+      responses:
+        200:
+          description: poprawne pobranie listy wniosków w wersji skróconej
+          schema:
+            $ref: '#/definitions/TicketShortPageable'
+          responseSchema:
+            $ref: '#/definitions/TicketShortPageable'
+        400:
+          description: błąd podczas pobierania listy wniosków w wersji skróconej
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - tickets
+      summary: Dodaje nowy wniosek
+      description: |
+        Dodaje nowy wniosek
+        Authorities [AUTH_WS_TICKETS_NEW]
+      operationId: addTicket
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - in: body
+        name: ticket
+        description: Obiekt tworzonego wniosku
+        required: false
+        schema:
+          $ref: '#/definitions/TicketParam'
+      responses:
+        201:
+          description: poprawne utworzenie wniosku
+          schema:
+            $ref: '#/definitions/Ticket'
+          responseSchema:
+            $ref: '#/definitions/Ticket'
+        400:
+          description: błąd podczas tworzenia wniosku
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /tickets/{id}:
+    get:
+      tags:
+      - tickets
+      summary: Pobiera szczegóły wniosu
+      description: |
+        Na podstawie id wniosku wyszukuje i zwraca szczegóły danego wniosku
+        Authorities [AUTH_WS_TICKETS_VIEW]
+      operationId: getTicketDetails
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator wniosku
+        required: true
+        type: integer
+      responses:
+        200:
+          description: poprawne pobranie szczegółów wniosku
+          schema:
+            $ref: '#/definitions/Ticket'
+          responseSchema:
+            $ref: '#/definitions/Ticket'
+        400:
+          description: błąd podczas pobierania szczegółów wniosku
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - tickets
+      summary: Edytuje istniejący wniosek
+      description: |
+        Edytuje istniejący wniosek
+        Authorities [AUTH_WS_TICKETS_MOD]
+      operationId: editTicket
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator wniosku
+        required: true
+        type: integer
+      - in: body
+        name: ticket
+        description: Obiekt wniosku
+        required: false
+        schema:
+          $ref: '#/definitions/TicketParam'
+      responses:
+        201:
+          description: poprawna edycja wniosku
+          schema:
+            $ref: '#/definitions/Ticket'
+          responseSchema:
+            $ref: '#/definitions/Ticket'
+        400:
+          description: błąd podczas edycji wniosku
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /tickets/{id}/tasks:
+    get:
+      tags:
+      - tickets
+      summary: Pobiera listę zadań dla danego wniosku
+      description: |
+        Na podstawie id wniosku wyszukuje i pobiera listę zadań
+        Authorities [AUTH_WS_TICKETS_VIEW]
+      operationId: getTicketTasks
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator wniosku
+        required: true
+        type: integer
+      responses:
+        200:
+          description: poprawne pobranie listy wydań
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Task'
+          responseSchema:
+            type: array
+            items:
+              $ref: '#/definitions/Task'
+        400:
+          description: błąd podczas pobierania listy zadań
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /tickets/{id}/accept:
+    post:
+      tags:
+      - tickets
+      summary: Akceptuje zgłoszenie do przetwarzania
+      description: |
+        Wybrane zgłoszenie zostaje zaakceptowane i przekazane do realizacji w powiązanych systemach
+        Authorities [AUTH_WS_TICKETS_MOD]
+      operationId: acceptTicket
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator zgłoszenia
+        required: true
+        type: integer
+      responses:
+        200:
+          description: poprawna akceptacja wniosku
+          schema:
+            $ref: '#/definitions/Ticket'
+          responseSchema:
+            $ref: '#/definitions/Ticket'
+        400:
+          description: błąd podczas akceptacji wniosku
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /tickets/{id}/complete:
+    post:
+      tags:
+      - tickets
+      summary: Kończy obsługę wniosku
+      description: |
+        Kończy obsługę wybranego wniosku ustawiając odpowiednią flagę
+        Authorities [AUTH_WS_TICKETS_MOD]
+      operationId: completeTicket
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator wniosku
+        required: true
+        type: integer
+      responses:
+        200:
+          description: poprawne zakończenie obsługi wniosku
+          schema:
+            $ref: '#/definitions/Ticket'
+          responseSchema:
+            $ref: '#/definitions/Ticket'
+        400:
+          description: błąd podczas kończenia obsługi wniosku
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /tickets/{id}/cancel:
+    post:
+      tags:
+      - tickets
+      summary: Anuluje obsługę wniosku
+      description: |
+        Anuluje obsługę wybranego wniosku ustawiając odpowiednią flagę. Anulowanie zostanie wykonane tylko w przypadku, gdy wniosek nie jest jeszcze zaakceptowany.
+        Authorities [AUTH_WS_TICKETS_MOD]
+      operationId: cancelTicket
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator wniosku
+        required: true
+        type: integer
+      - in: body
+        name: comments
+        description: Dodawany komentarz
+        required: false
+        schema:
+          $ref: '#/definitions/CommentParam'
+      responses:
+        200:
+          description: poprawne anulowanie obsługi wniosku
+          schema:
+            $ref: '#/definitions/Ticket'
+          responseSchema:
+            $ref: '#/definitions/Ticket'
+        400:
+          description: błąd podczas anulowania obsługi wniosku
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /tickets/{id}/status:
+    post:
+      tags:
+      - tickets
+      summary: Ustawia status wniosku
+      description: "Ustawia status wniosku. Można jednocześnie podać albo id statusu\
+        \ albo kod ale nie jedno i drugie na raz. \nAuthorities [AUTH_WS_TICKETS_MOD]\n"
+      operationId: editStatus
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator wniosku
+        required: true
+        type: integer
+      - in: body
+        name: status
+        description: status, na który ma być zmieniony
+        required: false
+        schema:
+          $ref: '#/definitions/TicketStatusParam'
+      responses:
+        200:
+          description: poprawna zmiana statusu
+          schema:
+            $ref: '#/definitions/Ticket'
+          responseSchema:
+            $ref: '#/definitions/Ticket'
+        400:
+          description: błąd podczas zmiany statusu
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /tickets/short:
+    get:
+      tags:
+      - tickets
+      summary: Pobiera listę wniosków o podanym statusie w wersji skróconej
+      description: |
+        Na podstawie parametrów wejściowych wyszukuje i pobiera listę wniosków. Parametry są łączone iloczynem logicznym.
+        Liczba pobranych rekordów ma być domyślnie max 100, ale jeśli podano parametr count, to tyle ile w nim wskazano.
+        Wyszukiwanie stringów ma być case insensitive a stringi mają być trimowane.
+        Authorities [AUTH_WS_TICKETS_VIEW]
+      operationId: getTicketsShort
+      produces:
+      - application/json
+      parameters:
+      - name: finished
+        in: query
+        description: |
+          Określa czy chodzi o procesowane, czy zakończone wnioski. Jeśli brak parametru, to wszystkie wnioski:
+           * N - Procesowane
+           * Y - Zakończone
+        required: false
+        type: string
+        enum:
+        - Y
+        - N
+      - name: name
+        in: query
+        description: Imię klienta
+        required: false
+        type: string
+      - name: surname
+        in: query
+        description: Nazwisko klienta
+        required: false
+        type: string
+      - name: pesel
+        in: query
+        description: PESEL klienta
+        required: false
+        type: string
+      - name: phone
+        in: query
+        description: Telefon klienta. Podczas wyszukiwania usunąć spacje z parametru i w DB
+        required: false
+        type: string
+      - name: action
+        in: query
+        description: ID typu wniosku
+        required: false
+        type: integer
+      - name: status
+        in: query
+        description: ID statusu wniosku
+        required: false
+        type: integer
+      - name: from
+        in: query
+        description: Data OD - dla daty utworzenia wniosku. Format YYYY-MM-DD
+        required: false
+        type: string
+      - name: to
+        in: query
+        description: Data DO - dla daty utworzenia wniosku. Format YYYY-MM-DD
+        required: false
+        type: string
+      - name: count
+        in: query
+        description: Maksymalna liczba zwróconych rekordów
+        required: false
+        type: integer
+        default: 100
+      responses:
+        200:
+          description: poprawne pobranie listy wniosków w wersji skróconej
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/TicketShort'
+          responseSchema:
+            type: array
+            items:
+              $ref: '#/definitions/TicketShort'
+        400:
+          description: błąd podczas pobierania listy wniosków w wersji skróconej
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /tickets/{id}/export:
+    get:
+      tags:
+      - tickets
+      summary: Generuje plik raporu w postaci .xls
+      description: |
+        Generuje plik raporu w postaci .xls
+        Authorities [AUTH_WS_TICKETS_VIEW]
+      operationId: exportXLSTicket
+      produces:
+      - application/vnd.ms-excel
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator wniosku
+        required: true
+        type: integer
+      responses:
+        200:
+          description: poprawne wygenerowanie raportu
+          headers:
+            ETag:
+              type: string
+          schema:
+            type: file
+          responseSchema:
+            type: file
+        400:
+          description: błąd podczas generowania raportu
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /tasks/{id}:
+    get:
+      tags:
+      - tasks
+      summary: Zwraca szczegóły zadania
+      description: |
+        Na podstawie id zadania wyszukuje i zwraca szczegóły danego zadania
+        Authorities [AUTH_WS_TASKS_VIEW]
+      operationId: getTaskDetails
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator zadania
+        required: true
+        type: integer
+        format: int32
+      responses:
+        200:
+          description: poprawne zwrócenie szczegółów zadania
+          schema:
+            $ref: '#/definitions/Task'
+          responseSchema:
+            $ref: '#/definitions/Task'
+        400:
+          description: zła wartość parametru wejściowego
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - tasks
+      summary: Zapisuje pola zadania za wyjątkiem zbiorów danych klienta (cust_data)
+      description: |
+        Dla wybranego zadania Zapisuje pola zadania za wyjątkiem zbiorów danych klienta (cust_data)
+        Jeśli w danym polu przekazany jest null, to nie należy dla niego wprowadzać zmian.
+        Jeśli w polu comment nie jest null, to komentarz zostaje po stronie serwera dodany do istniejących.
+        Pola statusId i proceedingResult nadpisują dane (o ile nie są null)
+        Authorities [AUTH_WS_TASKS_DO]
+      operationId: editTask
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator zadania
+        required: true
+        type: integer
+      - in: body
+        name: taskParam
+        description: Dane ewidencyjne zadania
+        required: false
+        schema:
+          $ref: '#/definitions/TaskParam'
+      responses:
+        200:
+          description: poprawne przydzielenie zadania
+          schema:
+            $ref: '#/definitions/Task'
+          responseSchema:
+            $ref: '#/definitions/Task'
+        400:
+          description: zła wartość identyfikatora zadania bądź błędy w danych ewidencyjnych
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /tasks/{id}/assign:
+    post:
+      tags:
+      - tasks
+      summary: Przydziela zadanie do wybranej grupy
+      description: |
+        Wybrane zadanie zostanie przydzielone do wybranej grupy. Przydzielenie powoduje usunięcie przypisania do użytkownika, który poprzednio miał przydzielone to zadanie (owner_id=null)
+        Authorities [AUTH_WS_TASKS_ASSIGN]
+      operationId: assignTask
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator zadania
+        required: true
+        type: integer
+        format: int32
+      - in: body
+        name: grupa
+        description: Grupa, której przydzielamy zadanie
+        required: false
+        schema:
+          $ref: '#/definitions/grupa'
+      responses:
+        200:
+          description: poprawne przydzielenie zadania grupie
+          schema:
+            $ref: '#/definitions/Task'
+          responseSchema:
+            $ref: '#/definitions/Task'
+        400:
+          description: zła wartość identyfikatora zadania bądź grupy
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /tasks/{id}/take:
+    post:
+      tags:
+      - tasks
+      summary: Przydziela zadanie operatorowi
+      description: |
+        Wybrane zadanie zostanie przydzielone operatorowi, który wywołał ten endpoint. Ustawiony zostaje owner_id (group_id pozostaje bez zmian).
+        Authorities [AUTH_WS_TASKS_DO]
+      operationId: takeTask
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator zadania
+        required: true
+        type: integer
+        format: int32
+      responses:
+        200:
+          description: poprawne przydzielenie zadania operatorowi
+          schema:
+            $ref: '#/definitions/Task'
+          responseSchema:
+            $ref: '#/definitions/Task'
+        400:
+          description: zła wartość identyfikatora
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /tasks/{id}/complete:
+    post:
+      tags:
+      - tasks
+      summary: Kończy obsługę zadania
+      description: |
+        Kończy obsługę wybranego zadania ustawiając odpowiednią flagę
+        Authorities [AUTH_WS_TASKS_DO]
+      operationId: completeTask
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator zadania
+        required: true
+        type: integer
+        format: int32
+      responses:
+        200:
+          description: poprawne zakończenie obsługi zadania
+          schema:
+            $ref: '#/definitions/Task'
+          responseSchema:
+            $ref: '#/definitions/Task'
+        400:
+          description: zła wartość identyfikatora zadania
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /tasks/{id}/statuses:
+    get:
+      tags:
+      - tasks
+      summary: Zwraca listę statusów, ktore może przyjmować dane zadanie
+      description: |
+        Na podstawie id zadania określa typ wniosku i system, którego dot. zadanie. Dodatkowo grupy w wyznaczonym systemie do których należy użytkownik. Mając powyższe wyznacza i zwraca możliwe statusy zadania, które użytkownik może ustawić.
+        Authorities [AUTH_WS_TASKS_DO]
+      operationId: getTaskStatuses
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator zadania
+        required: true
+        type: integer
+      responses:
+        200:
+          description: poprawne zwrócenie statusów zadania
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/TaskStatus'
+          responseSchema:
+            type: array
+            items:
+              $ref: '#/definitions/TaskStatus'
+        400:
+          description: bład podczas pobierania statusów zadania
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /tasks/{id}/custdatas:
+    get:
+      tags:
+      - tasks
+      summary: Zwraca listę zbiorów danych klienta podpiętych do zadania
+      description: |
+        Na podstawie id zadania, zwraca listę zbiorów danych klienta podpiętych do zadania
+        Authorities [AUTH_WS_TASKS_VIEW]
+      operationId: getTaskCustDatas
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator zadania
+        required: true
+        type: integer
+      responses:
+        200:
+          description: poprawne zwrócenie zbiorów danych
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/CustDataFull'
+          responseSchema:
+            type: array
+            items:
+              $ref: '#/definitions/CustDataFull'
+        400:
+          description: bład podczas pobierania zbiorów danych
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - tasks
+      summary: Dodaje nowy zestaw danych klienta podpięty do zadania
+      description: |
+        Dodaje nowy zestaw danych klienta podpięty do zadania
+        Authorities [AUTH_WS_TASKS_DO]
+      operationId: addTaskCustData
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator zadania
+        required: true
+        type: integer
+      - in: body
+        name: taskCustData
+        description: Zestaw danych klienta
+        required: false
+        schema:
+          $ref: '#/definitions/CustDataParam'
+      responses:
+        200:
+          description: poprawne dodanie zestawu danych klienta
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/CustDataFull'
+          responseSchema:
+            type: array
+            items:
+              $ref: '#/definitions/CustDataFull'
+        400:
+          description: bład podczas dodawania zestawu danych klienta
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /tasks/{taskId}/custdatas/{custDataId}:
+    get:
+      tags:
+      - tasks
+      summary: Zwraca zestaw danych klienta podpięty do zadania
+      description: |
+        Na podstawie id zadania i id zestawu, zwraca zestaw danych klienta podpięty do zadania
+        Authorities [AUTH_WS_TASKS_VIEW]
+      operationId: getTaskCustData
+      produces:
+      - application/json
+      parameters:
+      - name: taskId
+        in: path
+        description: Identyfikator zadania
+        required: true
+        type: integer
+      - name: custDataId
+        in: path
+        description: Identyfikator zestawu danych klienta
+        required: true
+        type: integer
+      responses:
+        200:
+          description: poprawne zwrócenie zestawu danych
+          schema:
+            $ref: '#/definitions/CustDataFull'
+          responseSchema:
+            $ref: '#/definitions/CustDataFull'
+        400:
+          description: bład podczas pobierania zastawu danych
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - tasks
+      summary: Edytuje zestaw danych klienta podpięty do zadania
+      description: |
+        Na podstawie id zadania i id zestawu, edytuje zestaw danych klienta podpięty do zadania
+        Authorities [AUTH_WS_TASKS_VIEW]
+      operationId: editTaskCustData
+      produces:
+      - application/json
+      parameters:
+      - name: taskId
+        in: path
+        description: Identyfikator zadania
+        required: true
+        type: integer
+      - name: custDataId
+        in: path
+        description: Identyfikator zestawu danych klienta
+        required: true
+        type: integer
+      - in: body
+        name: taskCustData
+        description: Zestaw danych klienta
+        required: false
+        schema:
+          $ref: '#/definitions/CustDataParam'
+      responses:
+        200:
+          description: poprawna edycja zestawu danych
+          schema:
+            $ref: '#/definitions/CustDataFull'
+          responseSchema:
+            $ref: '#/definitions/CustDataFull'
+        400:
+          description: bład podczas edycji zastawu danych
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    delete:
+      tags:
+      - tasks
+      summary: Usuwa zestaw danych klienta podpięty do zadania
+      description: |
+        Na podstawie id zadania i id zestawu, usuwa zestaw danych klienta podpięty do zadania
+        Authorities [AUTH_WS_TASKS_VIEW]
+      operationId: deleteTaskCustData
+      produces:
+      - application/json
+      parameters:
+      - name: taskId
+        in: path
+        description: Identyfikator zadania
+        required: true
+        type: integer
+      - name: custDataId
+        in: path
+        description: Identyfikator zestawu danych klienta
+        required: true
+        type: integer
+      responses:
+        200:
+          description: poprawne usunięcie zestawu danych
+          schema:
+            $ref: '#/definitions/CustDataFull'
+          responseSchema:
+            $ref: '#/definitions/CustDataFull'
+        400:
+          description: bład podczas usuwania zastawu danych
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /tasks/{taskId}/custdatas/{custDataId}/script:
+    post:
+      tags:
+      - tasks
+      summary: Uruchamia skrypt automatyczny
+      description: |
+        Na podstawie id zadania i id zestawu, uruchamia skrypt automatyczny
+        Authorities [AUTH_WS_TASKS_DO]
+      operationId: processTaskCustData
+      produces:
+      - application/json
+      parameters:
+      - name: taskId
+        in: path
+        description: Identyfikator zadania
+        required: true
+        type: integer
+      - name: custDataId
+        in: path
+        description: Identyfikator zestawu danych klienta
+        required: true
+        type: integer
+      - in: body
+        name: operation
+        description: Operacja, która zostanie wykonana na zestawie danych
+        required: false
+        schema:
+          $ref: '#/definitions/operation'
+      responses:
+        200:
+          description: poprawne uruchomienie skryptu
+          schema:
+            $ref: '#/definitions/CustDataFull'
+          responseSchema:
+            $ref: '#/definitions/CustDataFull'
+        400:
+          description: bład podczas uruchamiania skryptu
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /tasks/{taskId}/custdatas/{custDataId}/result:
+    post:
+      tags:
+      - tasks
+      summary: Zapisuje rezultat przetwarzania zestawu danych osobowych
+      description: |
+        Na podstawie id zadania i id zestawu, zapisuje rezultat przetwarzania zestawu danych osobowych
+        Authorities [AUTH_WS_TASKS_DO]
+      operationId: editTaskCustDataResult
+      produces:
+      - application/json
+      parameters:
+      - name: taskId
+        in: path
+        description: Identyfikator zadania
+        required: true
+        type: integer
+      - name: custDataId
+        in: path
+        description: Identyfikator zestawu danych klienta
+        required: true
+        type: integer
+      - in: body
+        name: result
+        description: Rezultat, który zostanie zapisany dla zestawu danych
+        required: false
+        schema:
+          $ref: '#/definitions/result'
+      responses:
+        200:
+          description: poprawne uruchomienie skryptu
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+        400:
+          description: bład podczas uruchamiania skryptu
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /tasks/short:
+    get:
+      tags:
+      - tasks
+      summary: Pobiera listę zadań o podanych parametrach w wersji skróconej
+      description: |
+        Wesja skrócona GET /tasks.
+        Zwraca listę zadań przypisanych do pytającego operatora oraz zadań nieprzypisanych (ale takich, które można mu przydzielić). Żeby wybrać zadania, które mogą być przydzielone operatorowi, należy wziąć pod uwage jakie jest aktualne przydzielenie zadania do grupy. Jeśli nie jest przydzielone do grupy, to zadanie może być przydzielone każdemu operatorowi danego systemu. Jeśli jest przydzielone do grupy, to zadanie może być przydzielone tylko tym operatorom danego systemu, którzy są w tej grupie.
+        Na podstawie parametrów wejściowych wyszukuje i pobiera listę zadań. Parametry są łączone iloczynem logicznym.
+        Liczba pobranych rekordów ma być domyślnie max 500!, ale jeśli podano parametr count, to tyle ile w nim wskazano.
+        Wyszukiwanie stringów ma być case insensitive a stringi mają być trimowane.
+        Wynik domyślnie posortowany malejąco (DESC) po dacie utworzenia zadania
+        Authorities [AUTH_WS_TASKS_VIEW]
+      operationId: getTasksShort
+      produces:
+      - application/json
+      parameters:
+      - name: finished
+        in: query
+        description: |
+          Określa czy chodzi o procesowane, czy zakończone zadania. Jeśli brak parametru, to wszystkie zadania:
+           * N - Niezakończone
+           * Y - Zakończone
+        required: false
+        type: string
+        enum:
+        - Y
+        - N
+      - name: assigned
+        in: query
+        description: |
+          Opcjonalny parametr określający czy zadania są przydzielone do operatora czy nie. Jeśli nie podany, to zwracane są przydzielone i nieprzydzielone zadania:
+           * N - Nieprzydzielone
+           * Y - Przydzielone
+        required: false
+        type: string
+        enum:
+        - Y
+        - N
+      - name: name
+        in: query
+        description: Imię klienta
+        required: false
+        type: string
+      - name: surname
+        in: query
+        description: Nazwisko klienta
+        required: false
+        type: string
+      - name: action
+        in: query
+        description: ID typu wniosku
+        required: false
+        type: integer
+      - name: status
+        in: query
+        description: ID statusu zadania
+        required: false
+        type: integer
+      - name: from
+        in: query
+        description: Data OD - dla daty utworzenia zadania. Format YYYY-MM-DD
+        required: false
+        type: string
+      - name: to
+        in: query
+        description: Data DO - dla daty utworzenia zadania. Format YYYY-MM-DD
+        required: false
+        type: string
+      - name: count
+        in: query
+        description: Maksymalna liczba zwróconych rekordów
+        required: false
+        type: integer
+        default: 500
+      responses:
+        200:
+          description: poprawne pobranie listy zadań w wersji skróconej
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/TaskShort'
+          responseSchema:
+            type: array
+            items:
+              $ref: '#/definitions/TaskShort'
+        400:
+          description: błąd podczas pobierania listy zadań w wersji skróconej
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /personal-datasets:
+    get:
+      tags:
+      - personalDatasets
+      summary: Zwraca zbiory należące do rejstru danych osobowych
+      description: |
+        Zwraca wszystkie zbiory należące do rejstru danych osobowych
+        Authorities [AUTH_WS_PERSONAL_DATASETS_VIEW]
+      operationId: getPersonalDatasets
+      produces:
+      - application/json
+      parameters: []
+      responses:
+        200:
+          description: poprawne pobranie zbiorów należących do rejstru danych osobowych
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/PersonalDataset'
+          responseSchema:
+            type: array
+            items:
+              $ref: '#/definitions/PersonalDataset'
+        400:
+          description: bład podczas pobierania zbiorów należących do rejstru danych osobowych
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - personalDatasets
+      summary: Tworzy nowy zbór w rejestrze zbiorów
+      description: |
+        Tworzy nowy zbór w rejestrze zbiorów
+        Authorities [AUTH_WS_PERSONAL_DATASETS_NEW]
+      operationId: addPersonalDataset
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - in: body
+        name: personalDataset
+        description: Definicja zbioru
+        required: false
+        schema:
+          $ref: '#/definitions/PersonalDatasetParam'
+      responses:
+        201:
+          description: definicja utworzona
+          schema:
+            $ref: '#/definitions/PersonalDataset'
+          responseSchema:
+            $ref: '#/definitions/PersonalDataset'
+        400:
+          description: bład podczas tworzenia definicji
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /personal-datasets/{id}:
+    get:
+      tags:
+      - personalDatasets
+      summary: Zwraca obiekt definicji zbioru danych osobowych
+      description: |
+        Na podstawie id zwraca definicję zbioru danych osobowych
+        Authorities [AUTH_WS_PERSONAL_DATASETS_VIEW]
+      operationId: getPersonalDataset
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator definicji
+        required: true
+        type: integer
+        format: int32
+      responses:
+        200:
+          description: poprawne zwrócenie definicji
+          schema:
+            $ref: '#/definitions/PersonalDataset'
+          responseSchema:
+            $ref: '#/definitions/PersonalDataset'
+        400:
+          description: bład podczas pobierania definicji
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - personalDatasets
+      summary: Modyfikuje obiekt definicji zbioru danych osobowych
+      description: |
+        Na podstawie id modyfikuje obiekt definicji akcji
+        Authorities [AUTH_WS_PERSONAL_DATASETS_MOD]
+      operationId: updatePersonalDataset
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator definicji zbioru danych osobowych
+        required: true
+        type: integer
+        format: int32
+      responses:
+        200:
+          description: poprawna modyfikacja definicji
+          schema:
+            $ref: '#/definitions/PersonalDataset'
+          responseSchema:
+            $ref: '#/definitions/PersonalDataset'
+        400:
+          description: bład podczas modyfikacji definicji
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    delete:
+      tags:
+      - personalDatasets
+      summary: Usuwa obiekt definicji zbioru danych osobowych
+      description: |
+        Na podstawie id usuwa obiekt definicji zbioru danych osobowych
+        Authorities [AUTH_WS_PERSONAL_DATASETS_DEL]
+      operationId: deletePersonalDataset
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator definicji zbioru danych osobowych
+        required: true
+        type: integer
+        format: int32
+      responses:
+        200:
+          description: poprawne usunięcie definicji
+        400:
+          description: bład podczas usuwania definicji
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /registries:
+    get:
+      tags:
+      - registries
+      summary: Pobiera listę rejestrów danego typu
+      description: |
+        Pobiera listę rejestrów danego typu
+        Authorities [AUTH_WS_REGISTRIES_VIEW]
+      operationId: getRegistries
+      produces:
+      - application/json
+      parameters:
+      - name: type
+        in: query
+        description: |
+          Typ rejestru:
+           * PA - rejestr czynności przetwarzania
+           * PC - rejestr kategorii czynności
+           * IN - rejestr incydentów
+        required: false
+        type: string
+        enum:
+        - PA
+        - PC
+        - IN
+      responses:
+        200:
+          description: poprawne pobranie listy rejestrów
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Registry'
+          responseSchema:
+            type: array
+            items:
+              $ref: '#/definitions/Registry'
+        400:
+          description: bład podczas pobierania listy rejestrów
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - registries
+      summary: Tworzy nowy rejestr
+      description: |
+        Tworzy nowy rejestr
+        Authorities [AUTH_WS_REGISTRIES_MOD]
+      operationId: addRegistry
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - in: body
+        name: registry
+        description: Parametry nowego rejestru
+        required: false
+        schema:
+          $ref: '#/definitions/RegistryParam'
+      responses:
+        201:
+          description: rejestr utworzony
+          schema:
+            $ref: '#/definitions/Registry'
+          responseSchema:
+            $ref: '#/definitions/Registry'
+        400:
+          description: bład podczas tworzenia rejestru
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /registries/{id}:
+    get:
+      tags:
+      - registries
+      summary: Pobiera dany rejestr
+      description: |
+        Pobiera dany rejestr
+        Authorities [AUTH_WS_REGISTRIES_VIEW]
+      operationId: getRegistry
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator rejestru
+        required: true
+        type: integer
+      responses:
+        200:
+          description: poprawne pobranie rejestru
+          schema:
+            $ref: '#/definitions/Registry'
+          responseSchema:
+            $ref: '#/definitions/Registry'
+        400:
+          description: bład podczas pobierania rejestru
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - registries
+      summary: Modyfikuje dany rejestr
+      description: |
+        Modyfikuje dany rejestr
+        Authorities [AUTH_WS_REGISTRIES_MOD]
+      operationId: updateRegistry
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator rejestru
+        required: true
+        type: integer
+      - in: body
+        name: registry
+        description: Parametry modyfikowanego rejestru
+        required: false
+        schema:
+          $ref: '#/definitions/RegistryParam'
+      responses:
+        201:
+          description: rejestr zmodyfikowany
+          schema:
+            $ref: '#/definitions/Registry'
+          responseSchema:
+            $ref: '#/definitions/Registry'
+        400:
+          description: bład podczas modyfikacji rejestru
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    delete:
+      tags:
+      - registries
+      summary: Usuwa dany rejestr
+      description: |
+        Usuwa dany rejestr
+        Authorities [AUTH_WS_REGISTRIES_MOD]
+      operationId: deleteRegistry
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator rejestru
+        required: true
+        type: integer
+      responses:
+        201:
+          description: poprawne usunięcie rejestru
+        400:
+          description: bład podczas usuwania rejestru
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /registries/{id}/processing-activities:
+    get:
+      tags:
+      - processingActivities
+      summary: Pobiera listę (w wersji skróconej) czynności przetwarzania danych z podanego rejestru
+      description: |
+        Pobiera listę (w wersji skróconej) czynności przetwarzania danych z podanego rejestru
+        Authorities [AUTH_WS_PROCESSING_ACTIVITIES_VIEW]
+      operationId: getProcessingActivities
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator rejestru
+        required: true
+        type: integer
+      responses:
+        200:
+          description: poprawne pobranie czynności przetwarzania danych z rejstru
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/ProcessingActivityShort'
+          responseSchema:
+            type: array
+            items:
+              $ref: '#/definitions/ProcessingActivityShort'
+        400:
+          description: bład podczas pobierania czynności przetwarzania danych z rejstru
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - processingActivities
+      summary: Tworzy nową czynność przetwarzania danych w danym rejestrze
+      description: |
+        Tworzy nową czynność przetwarzania danych w danym rejestrze
+        Authorities [AUTH_WS_PROCESSING_ACTIVITIES_MOD]
+      operationId: addProcessingActivity
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator rejestru
+        required: true
+        type: integer
+      - in: body
+        name: processingActivity
+        description: Definicja czynności przetwarzania danych
+        required: false
+        schema:
+          $ref: '#/definitions/ProcessingActivityParam'
+      responses:
+        201:
+          description: definicja utworzona
+          schema:
+            $ref: '#/definitions/ProcessingActivity'
+          responseSchema:
+            $ref: '#/definitions/ProcessingActivity'
+        400:
+          description: bład podczas tworzenia definicji
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /processing-activities/{id}:
+    get:
+      tags:
+      - processingActivities
+      summary: Pobiera czynność z rejestru czynności przetwarzania danych
+      description: |
+        Pobiera czynność z rejestru czynności przetwarzania danych
+        Authorities [AUTH_WS_PROCESSING_ACTIVITIES_VIEW]
+      operationId: getProcessingActivity
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator czynności
+        required: true
+        type: integer
+      responses:
+        200:
+          description: poprawne zwrócenie czynności
+          schema:
+            $ref: '#/definitions/ProcessingActivity'
+          responseSchema:
+            $ref: '#/definitions/ProcessingActivity'
+        400:
+          description: bład podczas pobierania czynności
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - processingActivities
+      summary: Modyfikuje czynność w rejestrze czynności przetwarzania danych
+      description: |
+        Modyfikuje czynność w rejestrze czynności przetwarzania danych
+        Authorities [AUTH_WS_PROCESSING_ACTIVITIES_MOD]
+      operationId: updateProcessingActivity
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator czynności w rejestrze czynności przetwarzania danych
+        required: true
+        type: integer
+      - in: body
+        name: processingActivity
+        description: Czynność przetwarzania
+        required: false
+        schema:
+          $ref: '#/definitions/ProcessingActivityParam'
+      responses:
+        200:
+          description: poprawna modyfikacja czynności
+          schema:
+            $ref: '#/definitions/ProcessingActivity'
+          responseSchema:
+            $ref: '#/definitions/ProcessingActivity'
+        400:
+          description: bład podczas modyfikacji czynności
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    delete:
+      tags:
+      - processingActivities
+      summary: Usuwa obiekt z rejestru czynności przetwarzania danych
+      description: |
+        Na podstawie id usuwa obiekt z rejestru czynności przetwarzania danych
+        Authorities [AUTH_WS_PROCESSING_ACTIVITIES_MOD]
+      operationId: deleteProcessingActivity
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator obiektu w rejestrze czynności przetwarzania danych
+        required: true
+        type: integer
+      responses:
+        200:
+          description: poprawne usunięcie obiektu
+        400:
+          description: bład podczas usuwania obiektu
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /registries/{id}/registry-admins:
+    get:
+      tags:
+      - registryAdmins
+      summary: Pobiera listę administratorów danego rejestru
+      description: |
+        Pobiera listę administratorów danego rejestru
+        Authorities [AUTH_WS_REGISTRY_ADMINS_VIEW]
+      operationId: getRegistryAdmins
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator rejestru
+        required: true
+        type: integer
+      responses:
+        200:
+          description: poprawne pobranie administratorów danego rejestru
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/RegistryAdmin'
+          responseSchema:
+            type: array
+            items:
+              $ref: '#/definitions/RegistryAdmin'
+        400:
+          description: bład podczas pobierania administratorów danego rejestru
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - registryAdmins
+      summary: Dodaje nowego administratora w danym rejestrze
+      description: |
+        Dodaje nowego administratora w danym rejestrze
+        Authorities [AUTH_WS_REGISTRY_ADMINS_MOD]
+      operationId: addRegistryAdmin
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator rejestru
+        required: true
+        type: integer
+      - in: body
+        name: registryAdmin
+        description: Dane administratora
+        required: false
+        schema:
+          $ref: '#/definitions/RegistryAdminParam'
+      responses:
+        201:
+          description: poprawnie utworzony administrator rejstru
+          schema:
+            $ref: '#/definitions/RegistryAdmin'
+          responseSchema:
+            $ref: '#/definitions/RegistryAdmin'
+        400:
+          description: bład podczas tworzenia administratora
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /registry-admins/{id}:
+    get:
+      tags:
+      - registryAdmins
+      summary: Pobiera danego administratora rejestru
+      description: |
+        Pobiera danego administratora rejestru
+        Authorities [AUTH_WS_REGISTRY_ADMINS_VIEW]
+      operationId: getRegistryAdmin
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator administratora
+        required: true
+        type: integer
+      responses:
+        200:
+          description: poprawne pobranie danych administratora
+          schema:
+            $ref: '#/definitions/RegistryAdmin'
+          responseSchema:
+            $ref: '#/definitions/RegistryAdmin'
+        400:
+          description: bład podczas pobierania danych administratora
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - registryAdmins
+      summary: Modyfikuje danego administratora rejestru
+      description: |
+        Modyfikuje danego administratora rejestru
+        Authorities [AUTH_WS_REGISTRY_ADMINS_MOD]
+      operationId: updateRegistryAdmin
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator administratora
+        required: true
+        type: integer
+      - in: body
+        name: registryAdmin
+        description: Dane administratora
+        required: false
+        schema:
+          $ref: '#/definitions/RegistryAdminParam'
+      responses:
+        200:
+          description: poprawna modyfikacja danych administratora
+          schema:
+            $ref: '#/definitions/RegistryAdmin'
+          responseSchema:
+            $ref: '#/definitions/RegistryAdmin'
+        400:
+          description: bład podczas modyfikacji danych administratora
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    delete:
+      tags:
+      - registryAdmins
+      summary: Usuwa danego administratora rejestru
+      description: |
+        Na podstawie id usuwa danego administratora rejestru
+        Authorities [AUTH_WS_REGISTRY_ADMINS_MOD]
+      operationId: deleteRegistryAdmin
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator administratora
+        required: true
+        type: integer
+      responses:
+        200:
+          description: poprawne usunięcie administratora rejestru
+        400:
+          description: bład podczas usuwania administratora rejestru
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /security/users:
+    get:
+      tags:
+      - security
+      summary: Zwraca listę użytkowników
+      description: |
+        Zwraca listę użytkowników
+        Authorities [AUTH_WS_USERS_VIEW]
+      operationId: getUsers
+      produces:
+      - application/json
+      parameters: []
+      responses:
+        200:
+          description: poprawne pobranie listy
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/User'
+          responseSchema:
+            type: array
+            items:
+              $ref: '#/definitions/User'
+        400:
+          description: bład podczas pobierania listy
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - security
+      summary: Zakłada nowego użytkownika
+      description: |
+        Zakłada nowego użytkownika
+        Authorities [AUTH_WS_USERS_NEW]
+      operationId: addUser
+      produces:
+      - application/json
+      parameters:
+      - in: body
+        name: user
+        description: Definicja użytkownika
+        required: false
+        schema:
+          $ref: '#/definitions/UserParam'
+      responses:
+        200:
+          description: poprawne założenie użytkownika
+          schema:
+            $ref: '#/definitions/User'
+          responseSchema:
+            $ref: '#/definitions/User'
+        400:
+          description: bład podczas modyfikacji definicji
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /security/users/{id}:
+    get:
+      tags:
+      - security
+      summary: Zwraca dane pojedynczego użytkownika
+      description: |
+        Zwraca użytkownika
+        Authorities [AUTH_WS_USERS_VIEW]
+      operationId: getUser
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator użytkownika
+        required: true
+        type: integer
+        format: int32
+      responses:
+        200:
+          description: poprawne pobranie
+          schema:
+            $ref: '#/definitions/User'
+          responseSchema:
+            $ref: '#/definitions/User'
+        400:
+          description: bład podczas pobierania listy
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - security
+      summary: Modyfikuje użytkownika
+      description: |
+        Modyfikuje dane podstawowe użytkownika
+        Authorities [AUTH_WS_USERS_MOD]
+      operationId: modifyUser
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator użytkownika
+        required: true
+        type: integer
+        format: int32
+      - in: body
+        name: user
+        description: Definicja użytkownika
+        required: false
+        schema:
+          $ref: '#/definitions/UserParam'
+      responses:
+        200:
+          description: poprawna modyfikacja użytkownika
+          schema:
+            $ref: '#/definitions/User'
+          responseSchema:
+            $ref: '#/definitions/User'
+        400:
+          description: bład podczas modyfikacji definicji
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /security/users/{id}/roles:
+    get:
+      tags:
+      - security
+      summary: Zwraca role użytkownika
+      description: |
+        Zwraca role użytkownika
+        Authorities [AUTH_WS_USERS_VIEW]
+      operationId: getUserRoles
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator użytkownika
+        required: true
+        type: integer
+        format: int32
+      responses:
+        200:
+          description: poprawne pobranie
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Role'
+          responseSchema:
+            type: array
+            items:
+              $ref: '#/definitions/Role'
+        400:
+          description: bład podczas pobierania listy
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - security
+      summary: Przydziela role użytkownikowi
+      description: |
+        Przydziela role użytkownikowi
+        Authorities [AUTH_WS_USERS_MOD]
+      operationId: saveUserRoles
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator użytkownika
+        required: true
+        type: integer
+        format: int32
+      - in: body
+        name: roles
+        description: Tablica IDków odpowiadających przydzielanym rolom
+        required: false
+        schema:
+          type: array
+          items:
+            type: number
+          example:
+          - 1
+          - 2
+          - 3
+      responses:
+        201:
+          description: zgłoszenie utworzone
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Role'
+          responseSchema:
+            type: array
+            items:
+              $ref: '#/definitions/Role'
+        400:
+          description: niepoprawne dane zgłoszenia
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /security/users/{id}/systems:
+    get:
+      tags:
+      - security
+      summary: Zwraca systemy użytkownika
+      description: |
+        Zwraca systemy użytkownika
+        Authorities [AUTH_WS_USERS_VIEW]
+      operationId: getUserSystems
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator użytkownika
+        required: true
+        type: integer
+      responses:
+        200:
+          description: poprawne pobranie
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/System'
+          responseSchema:
+            type: array
+            items:
+              $ref: '#/definitions/System'
+        400:
+          description: Bład podczas pobierania listy
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - security
+      summary: Przydziela systemy użytkownikowi
+      description: |
+        Przydziela systemy użytkownikowi
+        Authorities [AUTH_WS_USERS_MOD]
+      operationId: saveUserSystems
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator użytkownika
+        required: true
+        type: integer
+      - in: body
+        name: systems
+        description: Tablica IDków odpowiadających przydzielanym systemom
+        required: false
+        schema:
+          type: array
+          items:
+            type: number
+          example:
+          - 1
+          - 2
+          - 3
+      responses:
+        201:
+          description: Poprawne przydzielenie systemów
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/System'
+          responseSchema:
+            type: array
+            items:
+              $ref: '#/definitions/System'
+        400:
+          description: Niepoprawne przydzielenie systemów
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /security/users/{userId}/systems/{systemId}/groups:
+    get:
+      tags:
+      - security
+      summary: Zwraca grupy użytkownika w danym systemie
+      description: |
+        Zwraca grupy użytkownika w danym systemie
+        Authorities [AUTH_WS_USERS_VIEW]
+      operationId: getUserGroups
+      produces:
+      - application/json
+      parameters:
+      - name: userId
+        in: path
+        description: Identyfikator użytkownika
+        required: true
+        type: integer
+      - name: systemId
+        in: path
+        description: Identyfikator systemu
+        required: true
+        type: integer
+      responses:
+        200:
+          description: poprawne pobranie
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Group'
+          responseSchema:
+            type: array
+            items:
+              $ref: '#/definitions/Group'
+        400:
+          description: Bład podczas pobierania listy
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - security
+      summary: Przydziela grupy użytkownikowi
+      description: "Przydziela grupy użytkownikowi. \nZ uwagi na strukturę danych\
+        \ w DB (zaszyte powiązanie grupy z systemem w jednej tabeli - dms_groups),\
+        \ faktycznie nie jest wymagane odwoływanie się do systemId, bo przekazywane\
+        \ IDki grupy już jednoznacznie wskazują jakiego systemu dotyczą. Jednak wprowadzono\
+        \ 'systems/{systemId}' do URI z uwagi na symetrię z GET\nAuthorities [AUTH_WS_USERS_MOD]\n"
+      operationId: saveUserGroups
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - name: userId
+        in: path
+        description: Identyfikator użytkownika
+        required: true
+        type: integer
+      - name: systemId
+        in: path
+        description: Identyfikator systemu
+        required: true
+        type: integer
+      - in: body
+        name: groups
+        description: Tablica IDków odpowiadających przydzielanym grupom
+        required: false
+        schema:
+          type: array
+          items:
+            type: number
+          example:
+          - 1
+          - 2
+          - 3
+      responses:
+        201:
+          description: Poprawne przydzielenie grup
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Group'
+          responseSchema:
+            type: array
+            items:
+              $ref: '#/definitions/Group'
+        400:
+          description: Niepoprawne przydzielenie grup
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /security/authorities:
+    get:
+      tags:
+      - security
+      summary: Zwraca listę uprawnień
+      description: |
+        Zwraca wszystkie możliwe do wykorzystania uprawnienia.
+        Authorities [AUTH_WS_AUTHORITIES_VIEW]
+      operationId: getAuthorities
+      produces:
+      - application/json
+      parameters: []
+      responses:
+        200:
+          description: poprawne pobranie listy
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Authority'
+          responseSchema:
+            type: array
+            items:
+              $ref: '#/definitions/Authority'
+        400:
+          description: bład podczas pobierania listy
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /security/authorities/{id}:
+    get:
+      tags:
+      - security
+      summary: Zwraca obiekt uprawnienia
+      description: |
+        Na podstawie id zwraca obiekt definicji uprawnienia.
+        Authorities [AUTH_WS_AUTHORITIES_VIEW]
+      operationId: getAuthority
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator uprawnienia
+        required: true
+        type: integer
+        format: int32
+      responses:
+        200:
+          description: poprawne zwrócenie uprawnienia
+          schema:
+            $ref: '#/definitions/Authority'
+          responseSchema:
+            $ref: '#/definitions/Authority'
+        400:
+          description: bład podczas pobierania uprawnienia
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /security/roles:
+    get:
+      tags:
+      - security
+      summary: Zwraca listę ról użytkownika
+      description: |
+        Zwraca wszystkie możliwe do wykorzystania role.
+        Authorities [AUTH_WS_ROLES_VIEW]
+      operationId: getRoles
+      produces:
+      - application/json
+      parameters: []
+      responses:
+        200:
+          description: poprawne pobranie listy
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Role'
+          responseSchema:
+            type: array
+            items:
+              $ref: '#/definitions/Role'
+        400:
+          description: bład podczas pobierania listy
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - security
+      summary: Tworzy nową rolę użytkownika
+      description: |
+        Tworzy nową rolę użytkownika wraz z przypisanymi do niej uprawnieniami.
+        Authorities [AUTH_WS_ROLES_NEW]
+      operationId: addRole
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - in: body
+        name: role
+        description: Definicja roli
+        required: false
+        schema:
+          $ref: '#/definitions/RoleParam'
+      responses:
+        201:
+          description: definicja utworzona
+          schema:
+            $ref: '#/definitions/Role'
+          responseSchema:
+            $ref: '#/definitions/Role'
+        400:
+          description: bład podczas tworzenia definicji
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+  /security/roles/{id}:
+    get:
+      tags:
+      - security
+      summary: Zwraca obiekt roli
+      description: |
+        Na podstawie id zwraca obiekt definicji roli.
+        Authorities [AUTH_WS_ROLES_VIEW]
+      operationId: getRole
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator roli
+        required: true
+        type: integer
+        format: int32
+      responses:
+        200:
+          description: poprawne zwrócenie roli
+          schema:
+            $ref: '#/definitions/Role'
+          responseSchema:
+            $ref: '#/definitions/Role'
+        400:
+          description: bład podczas pobierania roli
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    post:
+      tags:
+      - security
+      summary: Modyfikuje obiekt definicji roli
+      description: |
+        Na podstawie id modyfikuje obiekt definicji roli użytkownika. [AUTH_ROLES_MOD]
+        Authorities [AUTH_WS_ROLES_MOD]
+      operationId: updateRole
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator definicji roli
+        required: true
+        type: integer
+        format: int32
+      - in: body
+        name: role
+        description: Definicja roli
+        required: false
+        schema:
+          $ref: '#/definitions/RoleParam'
+      responses:
+        200:
+          description: poprawna modyfikacja definicji
+          schema:
+            $ref: '#/definitions/Role'
+          responseSchema:
+            $ref: '#/definitions/Role'
+        400:
+          description: bład podczas modyfikacji definicji
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+    delete:
+      tags:
+      - security
+      summary: Usuwa obiekt definicji roli
+      description: |
+        Na podstawie id usuwa obiekt definicji roli.
+        Authorities [AUTH_WS_ROLES_DEL]
+      operationId: deleteRole
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: Identyfikator definicji roli
+        required: true
+        type: integer
+        format: int32
+      responses:
+        200:
+          description: poprawne usunięcie definicji
+        400:
+          description: bład podczas usuwania definicji
+          schema:
+            $ref: '#/definitions/ApiResponse'
+          responseSchema:
+            $ref: '#/definitions/ApiResponse'
+definitions:
+  CustData:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Identyfikator zestawu danych klienta
+      custName:
+        type: string
+        example: Jan
+        description: Imię klienta
+      custSecondName:
+        type: string
+        example: Włodzimierz
+        description: Drugie imię klienta
+      custSurname:
+        type: string
+        example: Kowalski
+        description: Nazwisko klienta
+      custFamilyName:
+        type: string
+        example: Kowalski
+        description: Nazwisko rodowe
+      custFatherName:
+        type: string
+        example: Marian
+        description: Imię ojca
+      custMotherName:
+        type: string
+        example: Marianna
+        description: Imię matki
+      custMotherMaidenName:
+        type: string
+        example: Nowak
+        description: Nazwisko rodowe matki
+      custDateOfBirth:
+        type: string
+        example: 1987-08-28T22:00:00.000Z
+        description: Data urodzenia
+      custPlaceOfBirth:
+        type: string
+        example: Ciechocinek
+        description: Miejsce urodzenia
+      custIdentityCard:
+        type: string
+        example: AF234234
+        description: Numer dokumentu tożsamości
+      custPassport:
+        type: string
+        example: 34AFFSDF34
+        description: Numer paszportu
+      custPesel:
+        type: string
+        example: "78052108212"
+        description: PESEL klienta
+      custNip:
+        type: string
+        example: "12345678901"
+        description: NIP klienta
+      custEmployer:
+        type: string
+        example: Firma Krzak
+        description: Pracodawca
+      custEmail:
+        type: string
+        example: jan@krzak.pl
+        description: Adres email
+      custPhoneNumber:
+        type: string
+        example: 222 222 222
+        description: Numer telefonu
+      custResidenceStatus:
+        type: string
+        example: rezydent
+        description: Status pobytu
+      custPersonType:
+        type: string
+        example: C
+        description: 'typ: Klient[C] / Pracownik[E]'
+      custSex:
+        type: string
+        example: M
+        description: Płeć klienta [M,F]
+      custPersAdrCity:
+        type: string
+        example: Katowice
+        description: Adres zamieszkania - Miasto
+      custPersAdrStreet:
+        type: string
+        example: Orzechowa
+        description: Adres zamieszkania - Ulica
+      custPersAdrBuildingNumber:
+        type: string
+        example: "2"
+        description: Adres zamieszkania - Numer budynku
+      custPersAdrFlatNumber:
+        type: string
+        example: "4"
+        description: Adres zamieszkania - Numer lokalu
+      custPersAdrPostalCode:
+        type: string
+        example: 10-100
+        description: Adres zamieszkania - Kod pocztowy
+      custBusAdrCity:
+        type: string
+        example: Katowice
+        description: Adres firmowy - Miasto
+      custBusAdrStreet:
+        type: string
+        example: Orzechowa
+        description: Adres firmowy - Ulica
+      custBusAdrBuildingNumber:
+        type: string
+        example: "2"
+        description: Adres firmowy - Numer budynku
+      custBusAdrFlatNumber:
+        type: string
+        example: "4"
+        description: Adres firmowy - Numer lokalu
+      custBusAdrPostalCode:
+        type: string
+        example: 10-100
+        description: Adres firmowy - Kod pocztowy
+      custFax:
+        type: string
+        example: "32432423"
+        description: Numer faxu
+      custBankAccNumber:
+        type: string
+        example: "3232323232323232323232"
+        description: Numer konta bankowego
+      custJob:
+        type: string
+        example: Grabarz
+        description: Zawód klienta
+      custPosition:
+        type: string
+        example: Kościelny
+        description: Stanowisko klienta
+      custSalary:
+        type: number
+        example: 1.99
+        description: Wynagrodzenie klienta
+      custEducation:
+        type: string
+        example: dr nauk filozoficznych
+        description: Wykształcenie klienta
+      custPhoto:
+        type: string
+        example: Y
+        description: Czy przechowywane jest zdjęcie klienta
+      custIpAddress:
+        type: string
+        example: 100.0.0.1
+        description: adres IP
+    xml:
+      name: CustData
+    example:
+      custFamilyName: Kowalski
+      custSurname: Kowalski
+      custPhoto: Y
+      custResidenceStatus: rezydent
+      custMotherName: Marianna
+      custIpAddress: 100.0.0.1
+      custBankAccNumber: "3232323232323232323232"
+      custJob: Grabarz
+      custPersAdrPostalCode: 10-100
+      custBusAdrFlatNumber: "4"
+      custBusAdrPostalCode: 10-100
+      custFatherName: Marian
+      custEmployer: Firma Krzak
+      custPersAdrFlatNumber: "4"
+      id: 1.0
+      custBusAdrBuildingNumber: "2"
+      custPassport: 34AFFSDF34
+      custIdentityCard: AF234234
+      custPesel: "78052108212"
+      custPhoneNumber: 222 222 222
+      custMotherMaidenName: Nowak
+      custEducation: dr nauk filozoficznych
+      custSex: M
+      custDateOfBirth: 1987-08-28T22:00:00.000Z
+      custPlaceOfBirth: Ciechocinek
+      custName: Jan
+      custPersAdrBuildingNumber: "2"
+      custSalary: 1.99
+      custFax: "32432423"
+      custBusAdrStreet: Orzechowa
+      custSecondName: Włodzimierz
+      custPersAdrCity: Katowice
+      custPersAdrStreet: Orzechowa
+      custEmail: jan@krzak.pl
+      custNip: "12345678901"
+      custPersonType: C
+      custPosition: Kościelny
+      custBusAdrCity: Katowice
+  CustDataParam:
+    type: object
+    properties:
+      custName:
+        type: string
+        example: Jan
+        description: Imię klienta
+      custSecondName:
+        type: string
+        example: Włodzimierz
+        description: Drugie imię klienta
+      custSurname:
+        type: string
+        example: Kowalski
+        description: Nazwisko klienta
+      custFamilyName:
+        type: string
+        example: Kowalski
+        description: Nazwisko rodowe
+      custFatherName:
+        type: string
+        example: Marian
+        description: Imię ojca
+      custMotherName:
+        type: string
+        example: Marianna
+        description: Imię matki
+      custMotherMaidenName:
+        type: string
+        example: Nowak
+        description: Nazwisko rodowe matki
+      custDateOfBirth:
+        type: string
+        example: 1987-08-28T22:00:00.000Z
+        description: Data urodzenia
+      custPlaceOfBirth:
+        type: string
+        example: Ciechocinek
+        description: Miejsce urodzenia
+      custIdentityCard:
+        type: string
+        example: AF234234
+        description: Numer dokumentu tożsamości
+      custPassport:
+        type: string
+        example: 34AFFSDF34
+        description: Numer paszportu
+      custPesel:
+        type: string
+        example: "78052108212"
+        description: PESEL klienta
+      custNip:
+        type: string
+        example: "12345678901"
+        description: NIP klienta
+      custEmployer:
+        type: string
+        example: Firma Krzak
+        description: Pracodawca
+      custEmail:
+        type: string
+        example: jan@krzak.pl
+        description: Adres email
+      custPhoneNumber:
+        type: string
+        example: 222 222 222
+        description: Numer telefonu
+      custResidenceStatus:
+        type: string
+        example: rezydent
+        description: Status pobytu
+      custPersonType:
+        type: string
+        example: C
+        description: 'typ: Klient[C] / Pracownik[E]'
+      custSex:
+        type: string
+        example: M
+        description: Płeć klienta [M,F]
+      custPersAdrCity:
+        type: string
+        example: Katowice
+        description: Adres zamieszkania - Miasto
+      custPersAdrStreet:
+        type: string
+        example: Orzechowa
+        description: Adres zamieszkania - Ulica
+      custPersAdrBuildingNumber:
+        type: string
+        example: "2"
+        description: Adres zamieszkania - Numer budynku
+      custPersAdrFlatNumber:
+        type: string
+        example: "4"
+        description: Adres zamieszkania - Numer lokalu
+      custPersAdrPostalCode:
+        type: string
+        example: 10-100
+        description: Adres zamieszkania - Kod pocztowy
+      custBusAdrCity:
+        type: string
+        example: Katowice
+        description: Adres firmowy - Miasto
+      custBusAdrStreet:
+        type: string
+        example: Orzechowa
+        description: Adres firmowy - Ulica
+      custBusAdrBuildingNumber:
+        type: string
+        example: "2"
+        description: Adres firmowy - Numer budynku
+      custBusAdrFlatNumber:
+        type: string
+        example: "4"
+        description: Adres firmowy - Numer lokalu
+      custBusAdrPostalCode:
+        type: string
+        example: 10-100
+        description: Adres firmowy - Kod pocztowy
+      custFax:
+        type: string
+        example: "32432423"
+        description: Numer faxu
+      custBankAccNumber:
+        type: string
+        example: "3232323232323232323232"
+        description: Numer konta bankowego
+      custJob:
+        type: string
+        example: Grabarz
+        description: Zawód klienta
+      custPosition:
+        type: string
+        example: Kościelny
+        description: Stanowisko klienta
+      custSalary:
+        type: number
+        example: 1.99
+        description: Wynagrodzenie klienta
+      custEducation:
+        type: string
+        example: dr nauk filozoficznych
+        description: Wykształcenie klienta
+      custPhoto:
+        type: string
+        example: Y
+        description: Czy przechowywane jest zdjęcie klienta
+      custIpAddress:
+        type: string
+        example: 100.0.0.1
+        description: adres IP
+    xml:
+      name: CustDataParam
+    example:
+      custFamilyName: Kowalski
+      custSurname: Kowalski
+      custPhoto: Y
+      custResidenceStatus: rezydent
+      custMotherName: Marianna
+      custIpAddress: 100.0.0.1
+      custBankAccNumber: "3232323232323232323232"
+      custJob: Grabarz
+      custPersAdrPostalCode: 10-100
+      custBusAdrFlatNumber: "4"
+      custBusAdrPostalCode: 10-100
+      custFatherName: Marian
+      custEmployer: Firma Krzak
+      custPersAdrFlatNumber: "4"
+      custBusAdrBuildingNumber: "2"
+      custPassport: 34AFFSDF34
+      custIdentityCard: AF234234
+      custPesel: "78052108212"
+      custPhoneNumber: 222 222 222
+      custMotherMaidenName: Nowak
+      custEducation: dr nauk filozoficznych
+      custSex: M
+      custDateOfBirth: 1987-08-28T22:00:00.000Z
+      custPlaceOfBirth: Ciechocinek
+      custName: Jan
+      custPersAdrBuildingNumber: "2"
+      custSalary: 1.99
+      custFax: "32432423"
+      custBusAdrStreet: Orzechowa
+      custSecondName: Włodzimierz
+      custPersAdrCity: Katowice
+      custPersAdrStreet: Orzechowa
+      custEmail: jan@krzak.pl
+      custNip: "12345678901"
+      custPersonType: C
+      custPosition: Kościelny
+      custBusAdrCity: Katowice
+  CustDataFull:
+    type: object
+    properties:
+      custData:
+        $ref: '#/definitions/CustData'
+      operation:
+        $ref: '#/definitions/TaskCustDataOperation'
+      result:
+        $ref: '#/definitions/TaskCustDataResult'
+    xml:
+      name: CustDataFull
+    example:
+      custData:
+        custFamilyName: Kowalski
+        custSurname: Kowalski
+        custPhoto: Y
+        custResidenceStatus: rezydent
+        custMotherName: Marianna
+        custIpAddress: 100.0.0.1
+        custBankAccNumber: "3232323232323232323232"
+        custJob: Grabarz
+        custPersAdrPostalCode: 10-100
+        custBusAdrFlatNumber: "4"
+        custBusAdrPostalCode: 10-100
+        custFatherName: Marian
+        custEmployer: Firma Krzak
+        custPersAdrFlatNumber: "4"
+        id: 1.0
+        custBusAdrBuildingNumber: "2"
+        custPassport: 34AFFSDF34
+        custIdentityCard: AF234234
+        custPesel: "78052108212"
+        custPhoneNumber: 222 222 222
+        custMotherMaidenName: Nowak
+        custEducation: dr nauk filozoficznych
+        custSex: M
+        custDateOfBirth: 1987-08-28T22:00:00.000Z
+        custPlaceOfBirth: Ciechocinek
+        custName: Jan
+        custPersAdrBuildingNumber: "2"
+        custSalary: 1.99
+        custFax: "32432423"
+        custBusAdrStreet: Orzechowa
+        custSecondName: Włodzimierz
+        custPersAdrCity: Katowice
+        custPersAdrStreet: Orzechowa
+        custEmail: jan@krzak.pl
+        custNip: "12345678901"
+        custPersonType: C
+        custPosition: Kościelny
+        custBusAdrCity: Katowice
+      result:
+        mode: A
+        code: D
+        name: Dane pobrane z systemu
+        id: 1.0
+        successful: Y
+      operation:
+        mode: A
+        code: AR
+        name: Anonimizuj ręcznie
+        id: 1.0
+  Ticket:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id zgłoszenia
+      action:
+        $ref: '#/definitions/Action'
+      status:
+        $ref: '#/definitions/TicketStatus'
+      creator:
+        $ref: '#/definitions/User'
+      custIdentData:
+        $ref: '#/definitions/CustData'
+      custUpdateData:
+        $ref: '#/definitions/CustData'
+      permissions:
+        type: array
+        items:
+          $ref: '#/definitions/PermissionDef'
+      procLimitationType:
+        type: string
+        example: blokada modyfikacji danych
+        description: Rodzaj ograniczenia przetwarzania danych
+      procLimitationCause:
+        type: string
+        example: Przyczyna
+        description: Przyczyna ograniczenia przetwarzania danych
+      complaintType:
+        type: string
+        example: Rodzaj
+        description: Rodzaj skargi
+      problemDescr:
+        type: string
+        example: Opis
+        description: Opis problemu
+      contactType:
+        type: string
+        example: e-mail
+        description: Rodzaj kontaktu
+      additionalInfo:
+        type: string
+        example: informacje
+        description: Dodatkowe informacje
+      comments:
+        type: string
+        example: To jest jakiś komentarz
+        description: Komentarze
+      created:
+        type: string
+        example: 2016-08-29T09:12:33.001Z
+        description: Data utworzenia zgłoszenia w systemie
+      modified:
+        type: string
+        example: 2016-08-29T09:12:33.001Z
+        description: Data modyfikacji zgłoszenia w systemie
+      requiredDate:
+        type: string
+        example: 2016-08-29T09:12:33.001Z
+        description: Wymagana data realizacji wniosku
+      receiptDate:
+        type: string
+        example: 2016-08-29T09:12:33.001Z
+        description: Data wpłynięcia wniosku
+    xml:
+      name: Ticket
+    example:
+      custIdentData:
+        custFamilyName: Kowalski
+        custSurname: Kowalski
+        custPhoto: Y
+        custResidenceStatus: rezydent
+        custMotherName: Marianna
+        custIpAddress: 100.0.0.1
+        custBankAccNumber: "3232323232323232323232"
+        custJob: Grabarz
+        custPersAdrPostalCode: 10-100
+        custBusAdrFlatNumber: "4"
+        custBusAdrPostalCode: 10-100
+        custFatherName: Marian
+        custEmployer: Firma Krzak
+        custPersAdrFlatNumber: "4"
+        id: 1.0
+        custBusAdrBuildingNumber: "2"
+        custPassport: 34AFFSDF34
+        custIdentityCard: AF234234
+        custPesel: "78052108212"
+        custPhoneNumber: 222 222 222
+        custMotherMaidenName: Nowak
+        custEducation: dr nauk filozoficznych
+        custSex: M
+        custDateOfBirth: 1987-08-28T22:00:00.000Z
+        custPlaceOfBirth: Ciechocinek
+        custName: Jan
+        custPersAdrBuildingNumber: "2"
+        custSalary: 1.99
+        custFax: "32432423"
+        custBusAdrStreet: Orzechowa
+        custSecondName: Włodzimierz
+        custPersAdrCity: Katowice
+        custPersAdrStreet: Orzechowa
+        custEmail: jan@krzak.pl
+        custNip: "12345678901"
+        custPersonType: C
+        custPosition: Kościelny
+        custBusAdrCity: Katowice
+      creator:
+        expiryDate: 2016-08-29T09:12:33.001Z
+        created: 2016-08-29T09:12:33.001Z
+        modified: 2016-08-29T09:12:33.001Z
+        id: 1.0
+        login: oper1a
+        email: operator1a@example.com
+        username: Operator1a
+        info: Operator systemu 1
+      comments: To jest jakiś komentarz
+      created: 2016-08-29T09:12:33.001Z
+      receiptDate: 2016-08-29T09:12:33.001Z
+      procLimitationType: blokada modyfikacji danych
+      requiredDate: 2016-08-29T09:12:33.001Z
+      contactType: e-mail
+      procLimitationCause: Przyczyna
+      permissions:
+      - permissionTo: 2017-08-29T22:00:00.000Z
+        documentType: Permission document
+        acceptanceMethod: email
+        revocable: Y
+        repository: repository1
+        version: Version 1.0
+        acceptableFlags: flag1, flag2
+        content: Content1
+        versionFrom: 2017-08-28T22:00:00.000Z
+        versionTo: 2017-08-29T22:00:00.000Z
+        businessObjectsClass: businessObjectsClass1
+        name: Permission1
+        permissionFrom: 2017-08-28T22:00:00.000Z
+        attributes: attr1, attr2
+        id: 1.0
+      - permissionTo: 2017-08-29T22:00:00.000Z
+        documentType: Permission document
+        acceptanceMethod: email
+        revocable: Y
+        repository: repository1
+        version: Version 1.0
+        acceptableFlags: flag1, flag2
+        content: Content1
+        versionFrom: 2017-08-28T22:00:00.000Z
+        versionTo: 2017-08-29T22:00:00.000Z
+        businessObjectsClass: businessObjectsClass1
+        name: Permission1
+        permissionFrom: 2017-08-28T22:00:00.000Z
+        attributes: attr1, attr2
+        id: 1.0
+      complaintType: Rodzaj
+      additionalInfo: informacje
+      action:
+        code: COPY_DATA
+        name: Odczyt danych
+        description: Opis Akcji
+        id: 1.0
+        templateId: 1.0
+      modified: 2016-08-29T09:12:33.001Z
+      custUpdateData:
+        custFamilyName: Kowalski
+        custSurname: Kowalski
+        custPhoto: Y
+        custResidenceStatus: rezydent
+        custMotherName: Marianna
+        custIpAddress: 100.0.0.1
+        custBankAccNumber: "3232323232323232323232"
+        custJob: Grabarz
+        custPersAdrPostalCode: 10-100
+        custBusAdrFlatNumber: "4"
+        custBusAdrPostalCode: 10-100
+        custFatherName: Marian
+        custEmployer: Firma Krzak
+        custPersAdrFlatNumber: "4"
+        id: 1.0
+        custBusAdrBuildingNumber: "2"
+        custPassport: 34AFFSDF34
+        custIdentityCard: AF234234
+        custPesel: "78052108212"
+        custPhoneNumber: 222 222 222
+        custMotherMaidenName: Nowak
+        custEducation: dr nauk filozoficznych
+        custSex: M
+        custDateOfBirth: 1987-08-28T22:00:00.000Z
+        custPlaceOfBirth: Ciechocinek
+        custName: Jan
+        custPersAdrBuildingNumber: "2"
+        custSalary: 1.99
+        custFax: "32432423"
+        custBusAdrStreet: Orzechowa
+        custSecondName: Włodzimierz
+        custPersAdrCity: Katowice
+        custPersAdrStreet: Orzechowa
+        custEmail: jan@krzak.pl
+        custNip: "12345678901"
+        custPersonType: C
+        custPosition: Kościelny
+        custBusAdrCity: Katowice
+      id: 1.0
+      problemDescr: Opis
+      status:
+        code: TIC_NEW
+        name: Procesowane w systemach
+        started: N
+        finished: Y
+        id: 2.0
+  TaskShort:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id wniosku
+      ticketId:
+        type: number
+        example: 1.0
+        description: Id wniosku
+      custName:
+        type: string
+        example: Jan
+        description: Imię klienta
+      custSurname:
+        type: string
+        example: Kowalski
+        description: Nazwisko klienta
+      ticketActionName:
+        type: string
+        example: Odczyt danych
+        description: Rodzaj wniosku
+      statusName:
+        type: string
+        example: Procesowane
+        description: Nazwa statusu zadania
+      statusCode:
+        type: string
+        example: TAS_PROCESSING
+        description: Kod statusu zadania
+      systemId:
+        type: number
+        example: 1.0
+        description: Id systemu
+      systemName:
+        type: string
+        example: Maximo DB2
+        description: Nazwa systemu
+      groupName:
+        type: string
+        example: Grupa użytkowników akceptujących Maximo
+        description: Nazwa grupy funkcyjnej
+      created:
+        type: string
+        example: 2016-08-29T09:12:33.001Z
+        description: Data utworzenia zgłoszenia w systemie
+    xml:
+      name: TaskShort
+    example:
+      systemId: 1.0
+      groupName: Grupa użytkowników akceptujących Maximo
+      systemName: Maximo DB2
+      custSurname: Kowalski
+      created: 2016-08-29T09:12:33.001Z
+      statusName: Procesowane
+      ticketActionName: Odczyt danych
+      id: 1.0
+      custName: Jan
+      ticketId: 1.0
+      statusCode: TAS_PROCESSING
+  TicketParam:
+    type: object
+    properties:
+      actionId:
+        type: number
+        example: 1.0
+        description: Rodzaj operacji, o którą wnioskuje klient
+      custIdentData:
+        $ref: '#/definitions/CustDataParam'
+      custUpdateData:
+        $ref: '#/definitions/CustDataParam'
+      procLimitationType:
+        type: string
+        example: blokada modyfikacji danych
+        description: Rodzaj ograniczenia przetwarzania danych
+      procLimitationCause:
+        type: string
+        example: Przyczyna
+        description: Przyczyna ograniczenia przetwarzania danych
+      complaintType:
+        type: string
+        example: Rodzaj
+        description: Rodzaj skargi
+      problemDescr:
+        type: string
+        example: Opis
+        description: Opis problemu
+      contactType:
+        type: string
+        example: e-mail
+        description: Rodzaj kontaktu
+      additionalInfo:
+        type: string
+        example: informacje
+        description: Dodatkowe informacje
+      comments:
+        type: string
+        example: To jest jakiś komentarz
+        description: Komentarze
+      permissionIds:
+        type: array
+        example:
+        - 1
+        - 2
+        - 3
+        items:
+          type: number
+      requiredDate:
+        type: string
+        example: 2016-08-29T09:12:33.001Z
+        description: Wymagana data realizacji wniosku
+      receiptDate:
+        type: string
+        example: 2016-08-29T09:12:33.001Z
+        description: Data wpłynięcia wniosku
+    xml:
+      name: TicketParam
+    example:
+      custIdentData:
+        custFamilyName: Kowalski
+        custSurname: Kowalski
+        custPhoto: Y
+        custResidenceStatus: rezydent
+        custMotherName: Marianna
+        custIpAddress: 100.0.0.1
+        custBankAccNumber: "3232323232323232323232"
+        custJob: Grabarz
+        custPersAdrPostalCode: 10-100
+        custBusAdrFlatNumber: "4"
+        custBusAdrPostalCode: 10-100
+        custFatherName: Marian
+        custEmployer: Firma Krzak
+        custPersAdrFlatNumber: "4"
+        custBusAdrBuildingNumber: "2"
+        custPassport: 34AFFSDF34
+        custIdentityCard: AF234234
+        custPesel: "78052108212"
+        custPhoneNumber: 222 222 222
+        custMotherMaidenName: Nowak
+        custEducation: dr nauk filozoficznych
+        custSex: M
+        custDateOfBirth: 1987-08-28T22:00:00.000Z
+        custPlaceOfBirth: Ciechocinek
+        custName: Jan
+        custPersAdrBuildingNumber: "2"
+        custSalary: 1.99
+        custFax: "32432423"
+        custBusAdrStreet: Orzechowa
+        custSecondName: Włodzimierz
+        custPersAdrCity: Katowice
+        custPersAdrStreet: Orzechowa
+        custEmail: jan@krzak.pl
+        custNip: "12345678901"
+        custPersonType: C
+        custPosition: Kościelny
+        custBusAdrCity: Katowice
+      comments: To jest jakiś komentarz
+      receiptDate: 2016-08-29T09:12:33.001Z
+      procLimitationType: blokada modyfikacji danych
+      requiredDate: 2016-08-29T09:12:33.001Z
+      contactType: e-mail
+      permissionIds:
+      - 1
+      - 2
+      - 3
+      procLimitationCause: Przyczyna
+      complaintType: Rodzaj
+      additionalInfo: informacje
+      actionId: 1.0
+      custUpdateData:
+        custFamilyName: Kowalski
+        custSurname: Kowalski
+        custPhoto: Y
+        custResidenceStatus: rezydent
+        custMotherName: Marianna
+        custIpAddress: 100.0.0.1
+        custBankAccNumber: "3232323232323232323232"
+        custJob: Grabarz
+        custPersAdrPostalCode: 10-100
+        custBusAdrFlatNumber: "4"
+        custBusAdrPostalCode: 10-100
+        custFatherName: Marian
+        custEmployer: Firma Krzak
+        custPersAdrFlatNumber: "4"
+        custBusAdrBuildingNumber: "2"
+        custPassport: 34AFFSDF34
+        custIdentityCard: AF234234
+        custPesel: "78052108212"
+        custPhoneNumber: 222 222 222
+        custMotherMaidenName: Nowak
+        custEducation: dr nauk filozoficznych
+        custSex: M
+        custDateOfBirth: 1987-08-28T22:00:00.000Z
+        custPlaceOfBirth: Ciechocinek
+        custName: Jan
+        custPersAdrBuildingNumber: "2"
+        custSalary: 1.99
+        custFax: "32432423"
+        custBusAdrStreet: Orzechowa
+        custSecondName: Włodzimierz
+        custPersAdrCity: Katowice
+        custPersAdrStreet: Orzechowa
+        custEmail: jan@krzak.pl
+        custNip: "12345678901"
+        custPersonType: C
+        custPosition: Kościelny
+        custBusAdrCity: Katowice
+      problemDescr: Opis
+  TicketStatus:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 2.0
+        description: Id statusu wniosku
+      name:
+        type: string
+        example: Procesowane w systemach
+        description: Nazwa statusu zgłoszenia
+      started:
+        type: string
+        example: N
+        description: Flaga określa czy wniosek jest już procesowany (wygenerowano zadania), czy nie
+      finished:
+        type: string
+        example: Y
+        description: Flaga określa, czy status jest z grupy statusów kończących
+      code:
+        type: string
+        example: TIC_NEW
+        description: Kod statusu wniosku
+    xml:
+      name: TicketStatus
+    description: Status przetwarzanego wniosku
+    example:
+      code: TIC_NEW
+      name: Procesowane w systemach
+      started: N
+      finished: Y
+      id: 2.0
+  TicketStatusParam:
+    type: object
+    properties:
+      statusId:
+        type: number
+        example: 6.0
+        description: Id statusu wniosku
+      statusCode:
+        type: string
+        example: TIC_NOTIFIED
+        description: Kod statusu wniosku
+    xml:
+      name: TicketStatusParam
+    description: Status, na który zmieniamy
+    example:
+      statusId: 6.0
+      statusCode: TIC_NOTIFIED
+  TicketShortPageable:
+    type: object
+    properties:
+      content:
+        type: array
+        items:
+          $ref: '#/definitions/TicketShort'
+      first:
+        type: boolean
+      last:
+        type: boolean
+      totalPages:
+        type: number
+      totalElements:
+        type: number
+      size:
+        type: number
+      number:
+        type: number
+    example:
+      number: 5.962133916683182377482808078639209270477294921875
+      last: true
+      size: 1.46581298050294517310021547018550336360931396484375
+      totalPages: 0.80082819046101150206595775671303272247314453125
+      content:
+      - custPesel: "12341234512"
+        custSurname: Kowalski
+        created: 2016-08-29T09:12:33.001Z
+        statusName: Procesowane w systemach
+        creatorName: Operator 1
+        requiredDate: 2016-08-29T09:12:33.001Z
+        id: 1.0
+        custName: Jan
+        custPhone: "506000001"
+        actionName: Odczyt danych
+        statusCode: TIC_PROCESSING_IN_SYSTEMS
+      - custPesel: "12341234512"
+        custSurname: Kowalski
+        created: 2016-08-29T09:12:33.001Z
+        statusName: Procesowane w systemach
+        creatorName: Operator 1
+        requiredDate: 2016-08-29T09:12:33.001Z
+        id: 1.0
+        custName: Jan
+        custPhone: "506000001"
+        actionName: Odczyt danych
+        statusCode: TIC_PROCESSING_IN_SYSTEMS
+      first: true
+      totalElements: 6.02745618307040320615897144307382404804229736328125
+  TicketShort:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id wniosku
+      actionName:
+        type: string
+        example: Odczyt danych
+        description: Rodzaj wniosku
+      statusName:
+        type: string
+        example: Procesowane w systemach
+        description: Nazwa statusu wniosku
+      statusCode:
+        type: string
+        example: TIC_PROCESSING_IN_SYSTEMS
+        description: Kod statusu wniosku
+      creatorName:
+        type: string
+        example: Operator 1
+        description: Nazwa użytkownika, który utworzył wniosek
+      custName:
+        type: string
+        example: Jan
+        description: Imię klienta
+      custSurname:
+        type: string
+        example: Kowalski
+        description: Nazwisko klienta
+      custPesel:
+        type: string
+        example: "12341234512"
+        description: PESEL osoby, której dotyczy wniosek
+      custPhone:
+        type: string
+        example: "506000001"
+        description: Nr telefonu osoby, której dotyczy wniosek
+      created:
+        type: string
+        example: 2016-08-29T09:12:33.001Z
+        description: Data utworzenia wniosku w systemie
+      requiredDate:
+        type: string
+        example: 2016-08-29T09:12:33.001Z
+        description: Wymagana data realizacji wniosku
+    xml:
+      name: TicketShort
+    description: Dane wniosku - wersja skrócona
+    example:
+      custPesel: "12341234512"
+      custSurname: Kowalski
+      created: 2016-08-29T09:12:33.001Z
+      statusName: Procesowane w systemach
+      creatorName: Operator 1
+      requiredDate: 2016-08-29T09:12:33.001Z
+      id: 1.0
+      custName: Jan
+      custPhone: "506000001"
+      actionName: Odczyt danych
+      statusCode: TIC_PROCESSING_IN_SYSTEMS
+  Task:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id zadania
+      custDatas:
+        type: array
+        items:
+          $ref: '#/definitions/CustDataFull'
+      ticket:
+        $ref: '#/definitions/Ticket'
+      owner:
+        $ref: '#/definitions/User'
+      group:
+        $ref: '#/definitions/Group'
+      system:
+        $ref: '#/definitions/System'
+      status:
+        $ref: '#/definitions/TaskStatus'
+      comments:
+        type: string
+        example: N
+        description: Komentarze
+      proceedingResult:
+        type: string
+        example: Postępowanie rozpatrzone na korzyść wnioskującego.
+        description: Wynik postępowania
+      processingResult:
+        type: string
+        example: Przetwarzanie zakończone
+        description: Rezultat przetwarzania automatycznego
+      mode:
+        type: string
+        example: A
+        description: Tryb przetwarzania zadania [A, M, AM]
+      created:
+        type: string
+        example: 2016-08-29T09:12:33.001Z
+        description: Data utworzenia zadania w systemie
+      modified:
+        type: string
+        example: 2016-08-29T09:12:33.001Z
+        description: Data modyfikacji zadania w systemie
+    xml:
+      name: Task
+    example:
+      owner:
+        expiryDate: 2016-08-29T09:12:33.001Z
+        created: 2016-08-29T09:12:33.001Z
+        modified: 2016-08-29T09:12:33.001Z
+        id: 1.0
+        login: oper1a
+        email: operator1a@example.com
+        username: Operator1a
+        info: Operator systemu 1
+      comments: N
+      ticket:
+        custIdentData:
+          custFamilyName: Kowalski
+          custSurname: Kowalski
+          custPhoto: Y
+          custResidenceStatus: rezydent
+          custMotherName: Marianna
+          custIpAddress: 100.0.0.1
+          custBankAccNumber: "3232323232323232323232"
+          custJob: Grabarz
+          custPersAdrPostalCode: 10-100
+          custBusAdrFlatNumber: "4"
+          custBusAdrPostalCode: 10-100
+          custFatherName: Marian
+          custEmployer: Firma Krzak
+          custPersAdrFlatNumber: "4"
+          id: 1.0
+          custBusAdrBuildingNumber: "2"
+          custPassport: 34AFFSDF34
+          custIdentityCard: AF234234
+          custPesel: "78052108212"
+          custPhoneNumber: 222 222 222
+          custMotherMaidenName: Nowak
+          custEducation: dr nauk filozoficznych
+          custSex: M
+          custDateOfBirth: 1987-08-28T22:00:00.000Z
+          custPlaceOfBirth: Ciechocinek
+          custName: Jan
+          custPersAdrBuildingNumber: "2"
+          custSalary: 1.99
+          custFax: "32432423"
+          custBusAdrStreet: Orzechowa
+          custSecondName: Włodzimierz
+          custPersAdrCity: Katowice
+          custPersAdrStreet: Orzechowa
+          custEmail: jan@krzak.pl
+          custNip: "12345678901"
+          custPersonType: C
+          custPosition: Kościelny
+          custBusAdrCity: Katowice
+        creator:
+          expiryDate: 2016-08-29T09:12:33.001Z
+          created: 2016-08-29T09:12:33.001Z
+          modified: 2016-08-29T09:12:33.001Z
+          id: 1.0
+          login: oper1a
+          email: operator1a@example.com
+          username: Operator1a
+          info: Operator systemu 1
+        comments: To jest jakiś komentarz
+        created: 2016-08-29T09:12:33.001Z
+        receiptDate: 2016-08-29T09:12:33.001Z
+        procLimitationType: blokada modyfikacji danych
+        requiredDate: 2016-08-29T09:12:33.001Z
+        contactType: e-mail
+        procLimitationCause: Przyczyna
+        permissions:
+        - permissionTo: 2017-08-29T22:00:00.000Z
+          documentType: Permission document
+          acceptanceMethod: email
+          revocable: Y
+          repository: repository1
+          version: Version 1.0
+          acceptableFlags: flag1, flag2
+          content: Content1
+          versionFrom: 2017-08-28T22:00:00.000Z
+          versionTo: 2017-08-29T22:00:00.000Z
+          businessObjectsClass: businessObjectsClass1
+          name: Permission1
+          permissionFrom: 2017-08-28T22:00:00.000Z
+          attributes: attr1, attr2
+          id: 1.0
+        - permissionTo: 2017-08-29T22:00:00.000Z
+          documentType: Permission document
+          acceptanceMethod: email
+          revocable: Y
+          repository: repository1
+          version: Version 1.0
+          acceptableFlags: flag1, flag2
+          content: Content1
+          versionFrom: 2017-08-28T22:00:00.000Z
+          versionTo: 2017-08-29T22:00:00.000Z
+          businessObjectsClass: businessObjectsClass1
+          name: Permission1
+          permissionFrom: 2017-08-28T22:00:00.000Z
+          attributes: attr1, attr2
+          id: 1.0
+        complaintType: Rodzaj
+        additionalInfo: informacje
+        action:
+          code: COPY_DATA
+          name: Odczyt danych
+          description: Opis Akcji
+          id: 1.0
+          templateId: 1.0
+        modified: 2016-08-29T09:12:33.001Z
+        custUpdateData:
+          custFamilyName: Kowalski
+          custSurname: Kowalski
+          custPhoto: Y
+          custResidenceStatus: rezydent
+          custMotherName: Marianna
+          custIpAddress: 100.0.0.1
+          custBankAccNumber: "3232323232323232323232"
+          custJob: Grabarz
+          custPersAdrPostalCode: 10-100
+          custBusAdrFlatNumber: "4"
+          custBusAdrPostalCode: 10-100
+          custFatherName: Marian
+          custEmployer: Firma Krzak
+          custPersAdrFlatNumber: "4"
+          id: 1.0
+          custBusAdrBuildingNumber: "2"
+          custPassport: 34AFFSDF34
+          custIdentityCard: AF234234
+          custPesel: "78052108212"
+          custPhoneNumber: 222 222 222
+          custMotherMaidenName: Nowak
+          custEducation: dr nauk filozoficznych
+          custSex: M
+          custDateOfBirth: 1987-08-28T22:00:00.000Z
+          custPlaceOfBirth: Ciechocinek
+          custName: Jan
+          custPersAdrBuildingNumber: "2"
+          custSalary: 1.99
+          custFax: "32432423"
+          custBusAdrStreet: Orzechowa
+          custSecondName: Włodzimierz
+          custPersAdrCity: Katowice
+          custPersAdrStreet: Orzechowa
+          custEmail: jan@krzak.pl
+          custNip: "12345678901"
+          custPersonType: C
+          custPosition: Kościelny
+          custBusAdrCity: Katowice
+        id: 1.0
+        problemDescr: Opis
+        status:
+          code: TIC_NEW
+          name: Procesowane w systemach
+          started: N
+          finished: Y
+          id: 2.0
+      processingResult: Przetwarzanie zakończone
+      created: 2016-08-29T09:12:33.001Z
+      mode: A
+      system:
+        name: System 1
+        id: 1.0
+        info: System do operacji księgowych
+      proceedingResult: Postępowanie rozpatrzone na korzyść wnioskującego.
+      modified: 2016-08-29T09:12:33.001Z
+      id: 1.0
+      custDatas:
+      - custData:
+          custFamilyName: Kowalski
+          custSurname: Kowalski
+          custPhoto: Y
+          custResidenceStatus: rezydent
+          custMotherName: Marianna
+          custIpAddress: 100.0.0.1
+          custBankAccNumber: "3232323232323232323232"
+          custJob: Grabarz
+          custPersAdrPostalCode: 10-100
+          custBusAdrFlatNumber: "4"
+          custBusAdrPostalCode: 10-100
+          custFatherName: Marian
+          custEmployer: Firma Krzak
+          custPersAdrFlatNumber: "4"
+          id: 1.0
+          custBusAdrBuildingNumber: "2"
+          custPassport: 34AFFSDF34
+          custIdentityCard: AF234234
+          custPesel: "78052108212"
+          custPhoneNumber: 222 222 222
+          custMotherMaidenName: Nowak
+          custEducation: dr nauk filozoficznych
+          custSex: M
+          custDateOfBirth: 1987-08-28T22:00:00.000Z
+          custPlaceOfBirth: Ciechocinek
+          custName: Jan
+          custPersAdrBuildingNumber: "2"
+          custSalary: 1.99
+          custFax: "32432423"
+          custBusAdrStreet: Orzechowa
+          custSecondName: Włodzimierz
+          custPersAdrCity: Katowice
+          custPersAdrStreet: Orzechowa
+          custEmail: jan@krzak.pl
+          custNip: "12345678901"
+          custPersonType: C
+          custPosition: Kościelny
+          custBusAdrCity: Katowice
+        result:
+          mode: A
+          code: D
+          name: Dane pobrane z systemu
+          id: 1.0
+          successful: Y
+        operation:
+          mode: A
+          code: AR
+          name: Anonimizuj ręcznie
+          id: 1.0
+      - custData:
+          custFamilyName: Kowalski
+          custSurname: Kowalski
+          custPhoto: Y
+          custResidenceStatus: rezydent
+          custMotherName: Marianna
+          custIpAddress: 100.0.0.1
+          custBankAccNumber: "3232323232323232323232"
+          custJob: Grabarz
+          custPersAdrPostalCode: 10-100
+          custBusAdrFlatNumber: "4"
+          custBusAdrPostalCode: 10-100
+          custFatherName: Marian
+          custEmployer: Firma Krzak
+          custPersAdrFlatNumber: "4"
+          id: 1.0
+          custBusAdrBuildingNumber: "2"
+          custPassport: 34AFFSDF34
+          custIdentityCard: AF234234
+          custPesel: "78052108212"
+          custPhoneNumber: 222 222 222
+          custMotherMaidenName: Nowak
+          custEducation: dr nauk filozoficznych
+          custSex: M
+          custDateOfBirth: 1987-08-28T22:00:00.000Z
+          custPlaceOfBirth: Ciechocinek
+          custName: Jan
+          custPersAdrBuildingNumber: "2"
+          custSalary: 1.99
+          custFax: "32432423"
+          custBusAdrStreet: Orzechowa
+          custSecondName: Włodzimierz
+          custPersAdrCity: Katowice
+          custPersAdrStreet: Orzechowa
+          custEmail: jan@krzak.pl
+          custNip: "12345678901"
+          custPersonType: C
+          custPosition: Kościelny
+          custBusAdrCity: Katowice
+        result:
+          mode: A
+          code: D
+          name: Dane pobrane z systemu
+          id: 1.0
+          successful: Y
+        operation:
+          mode: A
+          code: AR
+          name: Anonimizuj ręcznie
+          id: 1.0
+      group:
+        systemId: 1.0
+        name: GAD systemu X
+        id: 1.0
+        info: Główny administrator danych w systemie X
+      status:
+        code: TAS_NEW
+        name: Anonimizacja wykonana poprawnie
+        finished: Y
+        id: 1.0
+  TaskParam:
+    type: object
+    properties:
+      statusId:
+        type: number
+        example: 1.0
+        description: Identyfikator statusu zadania
+      comment:
+        type: string
+        example: Jan Kowalski 12.12.2012 Jakiś komentarz
+        description: Nowy Komentarz
+      proceedingResult:
+        type: string
+        example: Postępowanie rozpatrzone na korzyść wnioskującego.
+        description: Wynik postępowania
+    xml:
+      name: TaskParam
+    example:
+      statusId: 1.0
+      proceedingResult: Postępowanie rozpatrzone na korzyść wnioskującego.
+      comment: Jan Kowalski 12.12.2012 Jakiś komentarz
+  UserParam:
+    type: object
+    properties:
+      login:
+        type: string
+        example: oper1a
+        description: Login użytkownika
+      username:
+        type: string
+        example: Operator1a
+        description: Nazwa użytkownika
+      passwd:
+        type: string
+        example: hasło
+        description: Hasło użytkownika
+      info:
+        type: string
+        example: Operator systemu 1
+        description: Opis użytkownika
+      email:
+        type: string
+        example: operator1a@example.com
+        description: Opis użytkownika
+      expiryDate:
+        type: string
+        example: 2016-08-29T09:12:33.001Z
+        description: Data końca aktywności konta
+    xml:
+      name: UserParam
+    description: Właściwości nowego/edytowanego użytkownika systemu
+    example:
+      expiryDate: 2016-08-29T09:12:33.001Z
+      passwd: hasło
+      login: oper1a
+      email: operator1a@example.com
+      username: Operator1a
+      info: Operator systemu 1
+  Role:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id roli
+      name:
+        type: string
+        example: Operator
+        description: Nazwa roli
+      description:
+        type: string
+        example: Rola operatora systemu
+        description: Opis roli
+      code:
+        type: string
+        example: ROLE_OPERATOR
+        description: Kod roli, który jest przekazywany z tokenie
+      authorities:
+        type: array
+        items:
+          $ref: '#/definitions/Authority'
+      created:
+        type: string
+        example: 2016-08-29T09:12:33.001Z
+        description: Data utworzenia w systemie
+      modified:
+        type: string
+        example: 2016-08-29T09:12:33.001Z
+        description: Data modyfikacji w systemie
+    xml:
+      name: Role
+    description: Rola użytkownika systemu. Grupuje wiele uprawnień. Użytkownik może posiadać klika ról. Podczas logowania użytkownik wybiera jedną z posiadanych ról
+    example:
+      code: ROLE_OPERATOR
+      created: 2016-08-29T09:12:33.001Z
+      name: Operator
+      description: Rola operatora systemu
+      modified: 2016-08-29T09:12:33.001Z
+      id: 1.0
+      authorities:
+      - code: AUTH_TICKETS_VIEW
+        created: 2016-08-29T09:12:33.001Z
+        name: Przeglądanie zgłoszeń
+        description: Możliwość przeglądania zgłoszeń
+        modified: 2016-08-29T09:12:33.001Z
+        id: 1.0
+      - code: AUTH_TICKETS_VIEW
+        created: 2016-08-29T09:12:33.001Z
+        name: Przeglądanie zgłoszeń
+        description: Możliwość przeglądania zgłoszeń
+        modified: 2016-08-29T09:12:33.001Z
+        id: 1.0
+  RoleParam:
+    type: object
+    properties:
+      name:
+        type: string
+        example: Operator
+        description: Nazwa roli
+      description:
+        type: string
+        example: Rola operatora systemu
+        description: Opis roli
+      code:
+        type: string
+        example: ROLE_OPERATOR
+        description: Kod roli, który jest przekazywany z tokenie
+      authorities:
+        type: array
+        example:
+        - 1
+        - 2
+        - 3
+        items:
+          type: number
+    xml:
+      name: RoleParam
+    description: Rola użytkownika systemu. Grupuje wiele uprawnień. Użytkownik może posiadać klika ról. Podczas logowania użytkownik wybiera jedną z posiadanych ról
+    example:
+      code: ROLE_OPERATOR
+      name: Operator
+      description: Rola operatora systemu
+      authorities:
+      - 1
+      - 2
+      - 3
+  Authority:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id uprawnienia
+      name:
+        type: string
+        example: Przeglądanie zgłoszeń
+        description: Nazwa uprawnienia
+      description:
+        type: string
+        example: Możliwość przeglądania zgłoszeń
+        description: Opis uprawnienia
+      code:
+        type: string
+        example: AUTH_TICKETS_VIEW
+        description: Kod uprawnienia. Kody uprawnień są przekazywane do klienta podczas procesu logowania i używane w ng-dms
+      created:
+        type: string
+        example: 2016-08-29T09:12:33.001Z
+        description: Data utworzenia w systemie
+      modified:
+        type: string
+        example: 2016-08-29T09:12:33.001Z
+        description: Data modyfikacji w systemie
+    description: Uprawnienie do wykonywania czynności w systemie
+    example:
+      code: AUTH_TICKETS_VIEW
+      created: 2016-08-29T09:12:33.001Z
+      name: Przeglądanie zgłoszeń
+      description: Możliwość przeglądania zgłoszeń
+      modified: 2016-08-29T09:12:33.001Z
+      id: 1.0
+  PersonalDataset:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id zbioru
+      systemId:
+        type: number
+        example: 1.0
+        description: Id systemu, w którym przetwarzany jest zbiór
+      createdBy:
+        type: number
+        example: 1.0
+        description: Id użytkownika, który zdefiniował zbiór
+      created:
+        type: string
+        example: 2017-08-29T09:12:33.001Z
+        description: Data wpisania zbioru do rejestru
+      modified:
+        type: string
+        example: 2017-08-29T09:12:33.001Z
+        description: Data dokonania ostatniej aktualizacji
+      internal:
+        type: string
+        example: Y
+        description: Czy zbiór wewnętrzny [Y,N]
+      active:
+        type: string
+        example: Y
+        description: Czy zbiór aktywny [Y,N]
+      name:
+        type: string
+        example: Zbiór Danych Osobowych Kierowców
+        description: Nazwa zbioru
+      administrator:
+        type: string
+        example: ""
+        description: Oznaczenie administratora danych i adres jego siedziby lub miejsca zamieszkania oraz numer identyfikacyjny rejestru podmiotów gospodarki narodowej, jeżeli został mu nadany
+      representative:
+        type: string
+        example: ""
+        description: Oznaczenie przedstawiciela administratora danych, o którym mowa w art. 3la ustawy i adres jego siedziby lub miejsca zamieszkania - w przypadku wyznaczenia takego podmiotu
+      entrusted_to:
+        type: string
+        example: ""
+        description: Oznaczenie podmiotu, któremu powierzono przetwarzanie danych ze zbioru na podstawie art. 31 ustawy i adres jego siedziby lub miejsca zamieszkania w przypadku powierzenia przetwarzania danych temu podmiotowi
+      legal_basis:
+        type: string
+        example: ""
+        description: Podstawa prawna upoważniająca do prowadzenia zbioru danych
+      processing_purpose:
+        type: string
+        example: ""
+        description: Cel przetwarzania danych w zbiorze
+      person_category:
+        type: string
+        example: ""
+        description: Opis kategorii osób, których dane sa przetwarzane w zbiorze
+      contents_range:
+        type: string
+        example: ""
+        description: Zakres danych przetwarzanych w zbiorze
+      collect_mode:
+        type: string
+        example: ""
+        description: Sposób zbierania danych do zbioru w szczególności informacja czy dane do zbioru są zbierane od osób, których dotyczą, czy z innych źródeł niż osoba, której dane dotyczą
+      share_mode:
+        type: string
+        example: ""
+        description: Sposób udostępniania danych ze zbioru, w szczególności informacja czy dane ze zbioru są udostępniane  podmiotom innym niż upoważnione na podstawie przepisów prawa
+      recipient:
+        type: string
+        example: ""
+        description: Oznaczenie odbiorcy danych lub kategorii odbiorców, którym dane mogą być przekazywane
+      shared_abroad:
+        type: string
+        example: ""
+        description: Informacja dotycząca ewentualnego przekazywania danych do państwa trzeciego
+    xml:
+      name: PersonalDataset
+    description: Zbiór danych osobowych
+    example:
+      systemId: 1.0
+      internal: Y
+      created: 2017-08-29T09:12:33.001Z
+      legal_basis: ""
+      active: Y
+      contents_range: ""
+      share_mode: ""
+      person_category: ""
+      entrusted_to: ""
+      collect_mode: ""
+      administrator: ""
+      shared_abroad: ""
+      createdBy: 1.0
+      name: Zbiór Danych Osobowych Kierowców
+      recipient: ""
+      modified: 2017-08-29T09:12:33.001Z
+      processing_purpose: ""
+      id: 1.0
+      representative: ""
+  PersonalDatasetParam:
+    type: object
+    properties:
+      systemId:
+        type: number
+        example: 1.0
+        description: Id systemu, w którym przetwarzany jest zbiór
+      internal:
+        type: string
+        example: Y
+        description: Czy zbiór wewnętrzny [Y,N]
+      active:
+        type: string
+        example: Y
+        description: Czy zbiór aktywny [Y,N]
+      name:
+        type: string
+        example: Zbiór Danych Osobowych Kierowców
+        description: Nazwa zbioru
+      administrator:
+        type: string
+        example: ""
+        description: Oznaczenie administratora danych i adres jego siedziby lub miejsca zamieszkania oraz numer identyfikacyjny rejestru podmiotów gospodarki narodowej, jeżeli został mu nadany
+      representative:
+        type: string
+        example: ""
+        description: Oznaczenie przedstawiciela administratora danych, o którym mowa w art. 3la ustawy i adres jego siedziby lub miejsca zamieszkania - w przypadku wyznaczenia takego podmiotu
+      entrusted_to:
+        type: string
+        example: ""
+        description: Oznaczenie podmiotu, któremu powierzono przetwarzanie danych ze zbioru na podstawie art. 31 ustawy i adres jego siedziby lub miejsca zamieszkania w przypadku powierzenia przetwarzania danych temu podmiotowi
+      legal_basis:
+        type: string
+        example: ""
+        description: Podstawa prawna upoważniająca do prowadzenia zbioru danych
+      processing_purpose:
+        type: string
+        example: ""
+        description: Cel przetwarzania danych w zbiorze
+      person_category:
+        type: string
+        example: ""
+        description: Opis kategorii osób, których dane sa przetwarzane w zbiorze
+      contents_range:
+        type: string
+        example: ""
+        description: Zakres danych przetwarzanych w zbiorze
+      collect_mode:
+        type: string
+        example: ""
+        description: Sposób zbierania danych do zbioru w szczególności informacja czy dane do zbioru są zbierane od osób, których dotyczą, czy z innych źródeł niż osoba, której dane dotyczą
+      share_mode:
+        type: string
+        example: ""
+        description: Sposób udostępniania danych ze zbioru, w szczególności informacja czy dane ze zbioru są udostępniane  podmiotom innym niż upoważnione na podstawie przepisów prawa
+      recipient:
+        type: string
+        example: ""
+        description: Oznaczenie odbiorcy danych lub kategorii odbiorców, którym dane mogą być przekazywane
+      shared_abroad:
+        type: string
+        example: ""
+        description: Informacja dotycząca ewentualnego przekazywania danych do państwa trzeciego
+    xml:
+      name: PersonalDatasetParam
+    description: Zbiór danych osobowych
+    example:
+      systemId: 1.0
+      internal: Y
+      legal_basis: ""
+      active: Y
+      contents_range: ""
+      share_mode: ""
+      person_category: ""
+      entrusted_to: ""
+      collect_mode: ""
+      administrator: ""
+      shared_abroad: ""
+      name: Zbiór Danych Osobowych Kierowców
+      recipient: ""
+      processing_purpose: ""
+      representative: ""
+  ProcessingActivityShort:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id czynności przetwarzania
+      process:
+        type: string
+        example: Proces rekrutacji
+        description: Proces
+      description:
+        type: string
+        example: Powierzenie zbioru Newsletter
+        description: Opis czynności przetwarzania
+      departaments:
+        type: array
+        items:
+          $ref: '#/definitions/Departament'
+      processingPurpose:
+        type: string
+        example: Przeprowadzanie akcji mailingowych i raportowanie rezultatów
+        description: Cel przetwarzania
+      created:
+        type: string
+        example: 2017-08-29T09:12:33.001Z
+        description: Data wpisania czynności do rejestru
+    description: Czynność przetwarzania. Wersja skrócona
+    example:
+      process: Proces rekrutacji
+      departaments:
+      - name: Obsługa klienta
+        id: 1.0
+      - name: Obsługa klienta
+        id: 1.0
+      processingPurpose: Przeprowadzanie akcji mailingowych i raportowanie rezultatów
+      created: 2017-08-29T09:12:33.001Z
+      description: Powierzenie zbioru Newsletter
+      id: 1.0
+  ProcessingActivity:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id czynności przetwarzania
+      process:
+        type: string
+        example: Proces rekrutacji
+        description: Proces
+      description:
+        type: string
+        example: Powierzenie zbioru Newsletter
+        description: Opis czynności przetwarzania
+      departaments:
+        type: array
+        items:
+          $ref: '#/definitions/Departament'
+      datasetsName:
+        type: string
+        example: Subskrybenci newslettera
+        description: Nazwy zbiorów na których jest realizowana czynność
+      peopleCategory:
+        $ref: '#/definitions/PeopleCategory'
+      processingPurpose:
+        type: string
+        example: Przeprowadzanie akcji mailingowych i raportowanie rezultatów
+        description: Cel przetwarzania
+      programName:
+        type: string
+        example: ""
+        description: Nazwa programu
+      informationFields:
+        type: string
+        example: ""
+        description: Nazwa pól informacyjnych
+      startDate:
+        type: string
+        example: 2017-08-29T09:12:33.001Z
+        description: Data rozpoczęcia
+      endDate:
+        type: string
+        example: 2017-08-29T09:12:33.001Z
+        description: Data zakończenia
+      dataCategory:
+        $ref: '#/definitions/DataCategory'
+      legalBasis:
+        type: string
+        example: ""
+        description: Podstawa prawna
+      dataSource:
+        type: string
+        example: ""
+        description: Źródło danych
+      plannedDeletingDate:
+        type: string
+        example: 2017-08-29T09:12:33.001Z
+        description: Planowany termin usunięcia danych
+      pradmin:
+        type: string
+        example: ""
+        description: Nazwa administratora i dane kontaktowe
+      coadmin:
+        type: string
+        example: ""
+        description: Nazwa współadministratora i dane kontaktowe
+      processingSubject:
+        type: string
+        example: ""
+        description: Nazwa podmiotu przetwarzającego i dane kontaktowe
+      receiverCategory:
+        type: string
+        example: ""
+        description: Kategorie odbiorców
+      systemName:
+        type: string
+        example: ""
+        description: Nazwa systemu lub oprogramowania
+      technicalDescription:
+        type: string
+        example: ""
+        description: Ogólny opis techniczny i organizacyjny środków bezpieczeństwa
+      dpia:
+        type: string
+        example: ""
+        description: Ocena skutków dla ochrony danych (DPIA)
+      thirdCountryTransfer:
+        type: string
+        example: ""
+        description: Transfer do kraju trzeciego lub organizacji międzynarodowej
+      securityDocumentation:
+        type: string
+        example: ""
+        description: Dokumentacja odpowiednich zabezpieczeń w przypadku transferu
+      dataRanges:
+        type: string
+        example: ""
+        description: Zakres danych przetwarzanych w zbiorze
+      systems:
+        type: array
+        items:
+          $ref: '#/definitions/System'
+      created:
+        type: string
+        example: 2017-08-29T09:12:33.001Z
+        description: Data wpisania czynności do rejestru
+      modified:
+        type: string
+        example: 2017-08-29T09:12:33.001Z
+        description: Data dokonania ostatniej aktualizacji
+    xml:
+      name: ProcessingActivity
+    description: Czynność przetwarzania
+    example:
+      endDate: 2017-08-29T09:12:33.001Z
+      pradmin: ""
+      description: Powierzenie zbioru Newsletter
+      peopleCategory:
+        name: Pracownicy
+        id: 1.0
+      dpia: ""
+      thirdCountryTransfer: ""
+      securityDocumentation: ""
+      datasetsName: Subskrybenci newslettera
+      systemName: ""
+      systems:
+      - name: System 1
+        id: 1.0
+        info: System do operacji księgowych
+      - name: System 1
+        id: 1.0
+        info: System do operacji księgowych
+      processingPurpose: Przeprowadzanie akcji mailingowych i raportowanie rezultatów
+      programName: ""
+      dataCategory:
+        name: Zwykłe
+        id: 1.0
+      modified: 2017-08-29T09:12:33.001Z
+      id: 1.0
+      coadmin: ""
+      receiverCategory: ""
+      process: Proces rekrutacji
+      informationFields: ""
+      created: 2017-08-29T09:12:33.001Z
+      legalBasis: ""
+      plannedDeletingDate: 2017-08-29T09:12:33.001Z
+      departaments:
+      - name: Obsługa klienta
+        id: 1.0
+      - name: Obsługa klienta
+        id: 1.0
+      processingSubject: ""
+      dataRanges: ""
+      dataSource: ""
+      startDate: 2017-08-29T09:12:33.001Z
+      technicalDescription: ""
+  ProcessingActivityParam:
+    type: object
+    properties:
+      process:
+        type: string
+        example: Proces rekrutacji
+        description: Proces
+      description:
+        type: string
+        example: Powierzenie zbioru Newsletter
+        description: Opis czynności przetwarzania
+      departaments:
+        type: array
+        example:
+        - 1
+        - 2
+        - 3
+        items:
+          type: number
+      datasetsName:
+        type: string
+        example: Subskrybenci newslettera
+        description: Nazwy zbiorów na których jest realizowana czynność
+      peopleCategoryId:
+        type: number
+        example: 1.0
+        description: Id kategorii osób
+      processingPurpose:
+        type: string
+        example: Przeprowadzanie akcji mailingowych i raportowanie rezultatów
+        description: Cel przetwarzania
+      programName:
+        type: string
+        example: ""
+        description: Nazwa programu
+      informationFields:
+        type: string
+        example: ""
+        description: Nazwa pól informacyjnych
+      startDate:
+        type: string
+        example: 2017-08-29T09:12:33.001Z
+        description: Data rozpoczęcia
+      endDate:
+        type: string
+        example: 2017-08-29T09:12:33.001Z
+        description: Data zakończenia
+      dataCategoryId:
+        type: number
+        example: 1.0
+        description: Id kategorii danych osobowych
+      legalBasis:
+        type: string
+        example: ""
+        description: Podstawa prawna
+      dataSource:
+        type: string
+        example: ""
+        description: Źródło danych
+      plannedDeletingDate:
+        type: string
+        example: 2017-08-29T09:12:33.001Z
+        description: Planowany termin usunięcia danych
+      pradmin:
+        type: string
+        example: ""
+        description: Nazwa administratora i dane kontaktowe
+      coadmin:
+        type: string
+        example: ""
+        description: Nazwa współadministratora i dane kontaktowe
+      processingSubject:
+        type: string
+        example: ""
+        description: Nazwa podmiotu przetwarzającego i dane kontaktowe
+      receiverCategory:
+        type: string
+        example: ""
+        description: Kategorie odbiorców
+      systemName:
+        type: string
+        example: ""
+        description: Nazwa systemu lub oprogramowania
+      technicalDescription:
+        type: string
+        example: ""
+        description: Ogólny opis techniczny i organizacyjny środków bezpieczeństwa
+      dpia:
+        type: string
+        example: ""
+        description: Ocena skutków dla ochrony danych (DPIA)
+      thirdCountryTransfer:
+        type: string
+        example: ""
+        description: Transfer do kraju trzeciego lub organizacji międzynarodowej
+      securityDocumentation:
+        type: string
+        example: ""
+        description: Dokumentacja odpowiednich zabezpieczeń w przypadku transferu
+      contentsRange:
+        type: string
+        example: ""
+        description: Zakres danych przetwarzanych w zbiorze
+      systemIds:
+        type: array
+        example:
+        - 1
+        - 2
+        - 3
+        items:
+          type: number
+    xml:
+      name: ProcessingActivityParam
+    description: Czynność przetwarzania
+    example:
+      contentsRange: ""
+      endDate: 2017-08-29T09:12:33.001Z
+      pradmin: ""
+      systemIds:
+      - 1
+      - 2
+      - 3
+      description: Powierzenie zbioru Newsletter
+      dataCategoryId: 1.0
+      dpia: ""
+      thirdCountryTransfer: ""
+      peopleCategoryId: 1.0
+      securityDocumentation: ""
+      datasetsName: Subskrybenci newslettera
+      systemName: ""
+      processingPurpose: Przeprowadzanie akcji mailingowych i raportowanie rezultatów
+      programName: ""
+      coadmin: ""
+      receiverCategory: ""
+      process: Proces rekrutacji
+      informationFields: ""
+      legalBasis: ""
+      plannedDeletingDate: 2017-08-29T09:12:33.001Z
+      departaments:
+      - 1
+      - 2
+      - 3
+      processingSubject: ""
+      dataSource: ""
+      startDate: 2017-08-29T09:12:33.001Z
+      technicalDescription: ""
+  CommentParam:
+    type: object
+    properties:
+      comment:
+        type: string
+        example: Jakiś komentarz
+        description: Komentarz zapisywany przy zmianie statusu wniosku lub zadania
+    xml:
+      name: CommentsParam
+    description: Parametr opakowujący dodawany komentarz
+    example:
+      comment: Jakiś komentarz
+  Registry:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id rejestru
+      name:
+        type: string
+        example: Rejestr Czynności PKP SA v01
+        description: Nazwa rejestru
+      createdUser:
+        $ref: '#/definitions/User'
+      modifiedUser:
+        $ref: '#/definitions/User'
+      created:
+        type: string
+        example: 2017-08-29T09:12:33.001Z
+        description: Data dodania
+      modified:
+        type: string
+        example: 2017-08-29T09:12:33.001Z
+        description: Data modyfikacji
+    xml:
+      name: Registry
+    description: Rejestr
+    example:
+      modifiedUser:
+        expiryDate: 2016-08-29T09:12:33.001Z
+        created: 2016-08-29T09:12:33.001Z
+        modified: 2016-08-29T09:12:33.001Z
+        id: 1.0
+        login: oper1a
+        email: operator1a@example.com
+        username: Operator1a
+        info: Operator systemu 1
+      created: 2017-08-29T09:12:33.001Z
+      name: Rejestr Czynności PKP SA v01
+      modified: 2017-08-29T09:12:33.001Z
+      id: 1.0
+      createdUser:
+        expiryDate: 2016-08-29T09:12:33.001Z
+        created: 2016-08-29T09:12:33.001Z
+        modified: 2016-08-29T09:12:33.001Z
+        id: 1.0
+        login: oper1a
+        email: operator1a@example.com
+        username: Operator1a
+        info: Operator systemu 1
+  RegistryParam:
+    type: object
+    properties:
+      name:
+        type: string
+        example: Rejestr Czynności PKP SA v01
+        description: Nazwa rejestru
+      type:
+        type: string
+        example: PA
+        description: 'Typ rejestru: PA-czynności, PC-kategorie czynnosci, IN-incydenty'
+    xml:
+      name: RegistryParam
+    description: Rejestr
+    example:
+      name: Rejestr Czynności PKP SA v01
+      type: PA
+  RegistryAdmin:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id
+      registryId:
+        type: number
+        example: 1.0
+        description: Id rejestru
+      adminType:
+        $ref: '#/definitions/RegistryAdminType'
+      name:
+        type: string
+        example: Jan Nowacki
+        description: Nazwa
+      address:
+        type: string
+        example: Wiązowa 1
+        description: Adres
+      email:
+        type: string
+        example: jan@example.com
+        description: e-mail
+      phoneFax:
+        type: string
+        example: "345345345"
+        description: Telefon / Fax
+      additionalData:
+        type: string
+        example: Dodatkowe info o administratorze
+        description: Informacje dodatkowe
+      createdUser:
+        $ref: '#/definitions/User'
+      modifiedUser:
+        $ref: '#/definitions/User'
+      created:
+        type: string
+        example: 2017-08-29T09:12:33.001Z
+        description: Data dodania
+      modified:
+        type: string
+        example: 2017-08-29T09:12:33.001Z
+        description: Data modyfikacji
+    description: Administrator rejestru
+    example:
+      address: Wiązowa 1
+      modifiedUser:
+        expiryDate: 2016-08-29T09:12:33.001Z
+        created: 2016-08-29T09:12:33.001Z
+        modified: 2016-08-29T09:12:33.001Z
+        id: 1.0
+        login: oper1a
+        email: operator1a@example.com
+        username: Operator1a
+        info: Operator systemu 1
+      adminType:
+        name: Inspektor Danych Osobowych (IOD)
+        id: 1.0
+      created: 2017-08-29T09:12:33.001Z
+      name: Jan Nowacki
+      registryId: 1.0
+      modified: 2017-08-29T09:12:33.001Z
+      id: 1.0
+      additionalData: Dodatkowe info o administratorze
+      phoneFax: "345345345"
+      email: jan@example.com
+      createdUser:
+        expiryDate: 2016-08-29T09:12:33.001Z
+        created: 2016-08-29T09:12:33.001Z
+        modified: 2016-08-29T09:12:33.001Z
+        id: 1.0
+        login: oper1a
+        email: operator1a@example.com
+        username: Operator1a
+        info: Operator systemu 1
+  RegistryAdminParam:
+    type: object
+    properties:
+      adminTypeId:
+        type: number
+        example: 1.0
+        description: Id typu administratora
+      name:
+        type: string
+        example: Jan Nowacki
+        description: Nazwa
+      address:
+        type: string
+        example: Wiązowa 1
+        description: Adres
+      email:
+        type: string
+        example: jan@example.com
+        description: e-mail
+      phoneFax:
+        type: string
+        example: "345345345"
+        description: Telefon / Fax
+      additionalData:
+        type: string
+        example: Dodatkowe info o administratorze
+        description: Informacje dodatkowe
+    description: Parametr - Administrator rejestru
+    example:
+      address: Wiązowa 1
+      name: Jan Nowacki
+      additionalData: Dodatkowe info o administratorze
+      adminTypeId: 1.0
+      phoneFax: "345345345"
+      email: jan@example.com
+  ApiResponse:
+    type: object
+    properties:
+      code:
+        type: integer
+      type:
+        type: string
+      message:
+        type: string
+    description: Technicznie status operacji
+    example:
+      code: 0
+      type: type
+      message: message
+  TaskStatus:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id statusu
+      name:
+        type: string
+        example: Anonimizacja wykonana poprawnie
+        description: Nazwa statusu
+      finished:
+        type: string
+        example: Y
+        description: Flaga określa, czy status jest z grupy statusów kończących
+      code:
+        type: string
+        example: TAS_NEW
+        description: Kod statusu zadania
+    description: Status zadania
+    example:
+      code: TAS_NEW
+      name: Anonimizacja wykonana poprawnie
+      finished: Y
+      id: 1.0
+  User:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id użytkownika
+      login:
+        type: string
+        example: oper1a
+        description: Login użytkownika
+      username:
+        type: string
+        example: Operator1a
+        description: Nazwa użytkownika
+      info:
+        type: string
+        example: Operator systemu 1
+        description: Opis użytkownika
+      email:
+        type: string
+        example: operator1a@example.com
+        description: Opis użytkownika
+      created:
+        type: string
+        example: 2016-08-29T09:12:33.001Z
+        description: Data utworzenia w systemie
+      modified:
+        type: string
+        example: 2016-08-29T09:12:33.001Z
+        description: Data modyfikacji w systemie
+      expiryDate:
+        type: string
+        example: 2016-08-29T09:12:33.001Z
+        description: Data końca aktywności konta
+    description: Użytkownik systemu
+    example:
+      expiryDate: 2016-08-29T09:12:33.001Z
+      created: 2016-08-29T09:12:33.001Z
+      modified: 2016-08-29T09:12:33.001Z
+      id: 1.0
+      login: oper1a
+      email: operator1a@example.com
+      username: Operator1a
+      info: Operator systemu 1
+  System:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id systemu
+      name:
+        type: string
+        example: System 1
+        description: Nazwa systemu
+      info:
+        type: string
+        example: System do operacji księgowych
+        description: Opis systemu
+    description: Informacje o systemie
+    example:
+      name: System 1
+      id: 1.0
+      info: System do operacji księgowych
+  Group:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id grupy
+      name:
+        type: string
+        example: GAD systemu X
+        description: Nazwa grupy
+      info:
+        type: string
+        example: Główny administrator danych w systemie X
+        description: Opis grupy
+      systemId:
+        type: number
+        example: 1.0
+        description: Id systemu, w którym znajduje się grupa
+    description: Grupa funkcjonalna w danym systemie
+    example:
+      systemId: 1.0
+      name: GAD systemu X
+      id: 1.0
+      info: Główny administrator danych w systemie X
+  TaskCustDataOperation:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id operacji
+      name:
+        type: string
+        example: Anonimizuj ręcznie
+        description: Nazwa operacji
+      code:
+        type: string
+        example: AR
+        description: Kod operacji
+      mode:
+        type: string
+        example: A
+        description: Tryb procesowania
+    example:
+      mode: A
+      code: AR
+      name: Anonimizuj ręcznie
+      id: 1.0
+  TaskCustDataResult:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id rezultatu procesowania
+      name:
+        type: string
+        example: Dane pobrane z systemu
+        description: Nazwa rezultatu procesowania
+      code:
+        type: string
+        example: D
+        description: Kod rezultatu procesowania
+      mode:
+        type: string
+        example: A
+        description: Tryb procesowania
+      successful:
+        type: string
+        example: Y
+        description: Określa czy rezultat jest pomyślny czy nie
+    example:
+      mode: A
+      code: D
+      name: Dane pobrane z systemu
+      id: 1.0
+      successful: Y
+  Action:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id akcji
+      name:
+        type: string
+        example: Odczyt danych
+        description: Nazwa akcji
+      description:
+        type: string
+        example: Opis Akcji
+        description: Opis akcji
+      templateId:
+        type: number
+        example: 1.0
+        description: Identyfikator szablonu
+      code:
+        type: string
+        example: COPY_DATA
+        description: Kod akcji
+    description: Typ zgłoszenia
+    example:
+      code: COPY_DATA
+      name: Odczyt danych
+      description: Opis Akcji
+      id: 1.0
+      templateId: 1.0
+  PermissionDef:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id definicji zgody
+      name:
+        type: string
+        example: Permission1
+        description: Nazwa zgody
+      content:
+        type: string
+        example: Content1
+        description: Treść zgody
+      version:
+        type: string
+        example: Version 1.0
+        description: Wersja
+      permissionFrom:
+        type: string
+        example: 2017-08-28T22:00:00.000Z
+        description: Data ważności definicji od
+      permissionTo:
+        type: string
+        example: 2017-08-29T22:00:00.000Z
+        description: Data ważności definicji do
+      businessObjectsClass:
+        type: string
+        example: businessObjectsClass1
+        description: Klasy obiektów biznesowych
+      versionFrom:
+        type: string
+        example: 2017-08-28T22:00:00.000Z
+        description: Data od wersji zgody
+      versionTo:
+        type: string
+        example: 2017-08-29T22:00:00.000Z
+        description: Data do wersji zgody
+      revocable:
+        type: string
+        example: Y
+        description: Czy zgoda odwoływalna
+      attributes:
+        type: string
+        example: attr1, attr2
+        description: Atrybuty zgody
+      acceptableFlags:
+        type: string
+        example: flag1, flag2
+        description: Dopuszczalne flagi
+      acceptanceMethod:
+        type: string
+        example: email
+        description: Sposób wyrażania zgody
+      documentType:
+        type: string
+        example: Permission document
+        description: Rodzaj dokumentu
+      repository:
+        type: string
+        example: repository1
+        description: Repozytorium
+    description: Obiekt definicji zgód
+    example:
+      permissionTo: 2017-08-29T22:00:00.000Z
+      documentType: Permission document
+      acceptanceMethod: email
+      revocable: Y
+      repository: repository1
+      version: Version 1.0
+      acceptableFlags: flag1, flag2
+      content: Content1
+      versionFrom: 2017-08-28T22:00:00.000Z
+      versionTo: 2017-08-29T22:00:00.000Z
+      businessObjectsClass: businessObjectsClass1
+      name: Permission1
+      permissionFrom: 2017-08-28T22:00:00.000Z
+      attributes: attr1, attr2
+      id: 1.0
+  Departament:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id
+      name:
+        type: string
+        example: Obsługa klienta
+        description: Nazwa
+    description: Departament
+    example:
+      name: Obsługa klienta
+      id: 1.0
+  PeopleCategory:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id kategorii osób
+      name:
+        type: string
+        example: Pracownicy
+        description: Opis kategorii osób
+    description: Kategoria osób
+    example:
+      name: Pracownicy
+      id: 1.0
+  DataCategory:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id kategorii danych
+      name:
+        type: string
+        example: Zwykłe
+        description: Opis kategorii danych
+    description: Kategoria danych
+    example:
+      name: Zwykłe
+      id: 1.0
+  RegistryAdminType:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 1.0
+        description: Id
+      name:
+        type: string
+        example: Inspektor Danych Osobowych (IOD)
+        description: Nazwa
+    description: Typ administratora rejestru
+    example:
+      name: Inspektor Danych Osobowych (IOD)
+      id: 1.0
+  grupa:
+    type: object
+    required:
+    - groupId
+    properties:
+      groupId:
+        type: integer
+        example: 1
+  operation:
+    type: object
+    required:
+    - operationId
+    properties:
+      operationId:
+        type: integer
+        example: 1
+  result:
+    type: object
+    required:
+    - resultId
+    properties:
+      resultId:
+        type: integer
+        example: 1
